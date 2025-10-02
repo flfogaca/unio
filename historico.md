@@ -83,6 +83,13 @@
 - ✅ Decorators para autorização (@Public, @Roles, @CurrentUser)
 - ✅ UsersService e UsersController implementados
 - ✅ ConsultationsController com endpoints básicos
+- ✅ Tela inicial com três especialidades implementada
+- ✅ Sistema de solicitação de atendimento por especialidade
+- ✅ SpecialtiesDashboard com informações em tempo real
+- ✅ Fluxo completo de solicitação com 3 etapas
+- ✅ ConsultationsService, MedicalRecordsService e VideoService
+- ✅ Sistema de prioridades e tempo de espera
+- ✅ Interface moderna com indicadores de status
 
 ## Autorização
 - ✅ Usuário autorizou continuar desenvolvimento sem permissão prévia

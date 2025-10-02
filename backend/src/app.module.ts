@@ -15,6 +15,7 @@ import { ConsultationsModule } from './presentation/controllers/consultations/co
 import { SpecialtiesModule } from './presentation/controllers/specialties/specialties.module';
 import { MedicalRecordsModule } from './presentation/controllers/medical-records/medical-records.module';
 import { VideoModule } from './presentation/controllers/video/video.module';
+import { GatewayModule } from './presentation/gateway/gateway.module';
 
 // Global interceptors and filters
 import { ResponseInterceptor } from './presentation/interceptors/response.interceptor';
@@ -52,6 +53,7 @@ import { JwtAuthGuard } from './presentation/controllers/auth/guards/jwt-auth.gu
     SpecialtiesModule,
     MedicalRecordsModule,
     VideoModule,
+    GatewayModule,
   ],
   providers: [
     // Global guards
