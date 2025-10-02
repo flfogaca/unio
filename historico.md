@@ -77,7 +77,12 @@
 - ✅ Sistema de auditoria e analytics
 - ✅ Redis configurado para cache e sessões
 - ✅ Interceptors e filters globais
-- ✅ Estrutura de autenticação iniciada
+- ✅ Sistema de autenticação completo com JWT e autorização
+- ✅ AuthService com validação de CPF e senha
+- ✅ Guards e strategies para Passport
+- ✅ Decorators para autorização (@Public, @Roles, @CurrentUser)
+- ✅ UsersService e UsersController implementados
+- ✅ ConsultationsController com endpoints básicos
 
 ## Autorização
 - ✅ Usuário autorizou continuar desenvolvimento sem permissão prévia

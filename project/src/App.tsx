@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
 import { Header } from './components/layout/Header'
 import { Sidebar } from './components/layout/Sidebar'
+import { SpecialtiesDashboard } from './components/SpecialtiesDashboard'
+import { SolicitarAtendimento } from './components/SolicitarAtendimento'
 import { PacienteDashboard } from './components/paciente/Dashboard'
-import { SolicitarAtendimento } from './components/paciente/SolicitarAtendimento'
+import { SolicitarAtendimento as PacienteSolicitarAtendimento } from './components/paciente/SolicitarAtendimento'
 import { HistoricoConsultas } from './components/paciente/HistoricoConsultas'
 import { FilaAtendimento } from './components/dentista/FilaAtendimento'
 import { ConsultasAtivas } from './components/dentista/ConsultasAtivas'
@@ -36,6 +38,11 @@ function App() {
     setSidebarOpen(false)
   }
 
+  const handleSelectSpecialty = (specialtyId: string) => {
+    // Navigate to specialty-specific page
+    setCurrentPath(`/solicitar-atendimento/${specialtyId}`)
+  }
+
   const renderContent = () => {
     // Extract consultation ID from path if present
     const consultaMatch = currentPath.match(/^\/dentista\/consulta\/(.+)$/)
@@ -43,13 +50,27 @@ function App() {
       return <ConsultaRoom consultaId={consultaMatch[1]} />
     }
 
+    // Extract specialty from solicitar-atendimento path
+    const specialtyMatch = currentPath.match(/^\/solicitar-atendimento\/(.+)$/)
+    if (specialtyMatch) {
+      return (
+        <SolicitarAtendimento 
+          specialtyId={specialtyMatch[1]} 
+          onBack={() => setCurrentPath('/')}
+        />
+      )
+    }
+
     switch (currentPath) {
-      // Paciente routes
+      // Main dashboard with specialties
       case '/':
+        return <SpecialtiesDashboard onSelectSpecialty={handleSelectSpecialty} />
+      
+      // Paciente routes
       case '/paciente':
         return <PacienteDashboard />
       case '/paciente/solicitar':
-        return <SolicitarAtendimento />
+        return <PacienteSolicitarAtendimento />
       case '/paciente/historico':
         return <HistoricoConsultas />
 
