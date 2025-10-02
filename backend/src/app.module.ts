@@ -17,6 +17,7 @@ import { MedicalRecordsModule } from './presentation/controllers/medical-records
 import { VideoModule } from './presentation/controllers/video/video.module';
 import { GatewayModule } from './presentation/gateway/gateway.module';
 import { WaitTimeModule } from './presentation/controllers/wait-time/wait-time.module';
+import { AvailabilityModule } from './presentation/controllers/availability/availability.module';
 
 // Global interceptors and filters
 import { ResponseInterceptor } from './presentation/interceptors/response.interceptor';
@@ -56,6 +57,7 @@ import { JwtAuthGuard } from './presentation/controllers/auth/guards/jwt-auth.gu
     VideoModule,
     GatewayModule,
     WaitTimeModule,
+    AvailabilityModule,
   ],
   providers: [
     // Global guards
