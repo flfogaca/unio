@@ -58,3 +58,4 @@ export interface VideoCallRoom {
   createdAt: Date;
   expiresAt: Date;
 }
+

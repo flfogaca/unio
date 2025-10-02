@@ -227,3 +227,4 @@ model SystemConfig {
 
   @@map("system_config")
 }
+

@@ -176,3 +176,4 @@ export class Consultation extends BaseEntity {
     return this.startedAt.getTime() - this.createdAt.getTime();
   }
 }
+

@@ -15,6 +15,8 @@ import { LoginDto } from '../../application/dto/login.dto';
 import { RegisterDto } from '../../application/dto/register.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { LocalAuthGuard } from './guards/local-auth.guard';
+import { Public } from '@/shared/decorators/public.decorator';
+import { CurrentUser } from '@/shared/decorators/current-user.decorator';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -22,6 +24,7 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('login')
+  @Public()
   @HttpCode(HttpStatus.OK)
   @UseGuards(LocalAuthGuard)
   @ApiOperation({ summary: 'User login with CPF and password' })
@@ -35,6 +38,7 @@ export class AuthController {
   }
 
   @Post('register')
+  @Public()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Register new user' })
   @ApiResponse({ status: 201, description: 'User registered successfully' })
@@ -45,6 +49,7 @@ export class AuthController {
   }
 
   @Post('refresh')
+  @Public()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Refresh access token' })
   @ApiResponse({ status: 200, description: 'Token refreshed successfully' })
@@ -59,8 +64,8 @@ export class AuthController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'User logout' })
   @ApiResponse({ status: 200, description: 'Logout successful' })
-  async logout(@Request() req: any) {
-    return this.authService.logout(req.user.id);
+  async logout(@CurrentUser() user: any) {
+    return this.authService.logout(user.id);
   }
 
   @Get('profile')
@@ -69,8 +74,8 @@ export class AuthController {
   @ApiOperation({ summary: 'Get user profile' })
   @ApiResponse({ status: 200, description: 'User profile retrieved' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async getProfile(@Request() req: any) {
-    return this.authService.getProfile(req.user.id);
+  async getProfile(@CurrentUser() user: any) {
+    return this.authService.getProfile(user.id);
   }
 
   @Get('verify-token')
@@ -79,14 +84,15 @@ export class AuthController {
   @ApiOperation({ summary: 'Verify if token is valid' })
   @ApiResponse({ status: 200, description: 'Token is valid' })
   @ApiResponse({ status: 401, description: 'Token is invalid' })
-  async verifyToken(@Request() req: any) {
+  async verifyToken(@CurrentUser() user: any) {
     return {
       valid: true,
       user: {
-        id: req.user.id,
-        email: req.user.email,
-        role: req.user.role,
+        id: user.id,
+        email: user.email,
+        role: user.role,
       },
     };
   }
 }
+

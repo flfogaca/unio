@@ -21,6 +21,10 @@ import { ResponseInterceptor } from './presentation/interceptors/response.interc
 import { LoggingInterceptor } from './presentation/interceptors/logging.interceptor';
 import { GlobalExceptionFilter } from './presentation/filters/global-exception.filter';
 
+// Global guards
+import { APP_GUARD } from '@nestjs/core';
+import { JwtAuthGuard } from './presentation/controllers/auth/guards/jwt-auth.guard';
+
 @Module({
   imports: [
     // Configuration
@@ -53,6 +57,10 @@ import { GlobalExceptionFilter } from './presentation/filters/global-exception.f
     // Global guards
     {
       provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
       useClass: ThrottlerGuard,
     },
 
@@ -74,3 +82,4 @@ import { GlobalExceptionFilter } from './presentation/filters/global-exception.f
   ],
 })
 export class AppModule {}
+

@@ -221,3 +221,4 @@ Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para de
 ## 🆘 Suporte
 
 Para suporte técnico ou dúvidas, entre em contato através dos canais oficiais do projeto.
+

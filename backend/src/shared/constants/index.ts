@@ -3,7 +3,7 @@
 export const SPECIALTIES = {
   PSYCHOLOGIST: 'psicologo',
   DENTIST: 'dentista',
-  MEDICAL_CLINIC: 'medico-clinico',
+  MEDICAL_CLINIC: 'medico_clinico',
 } as const;
 
 export const USER_ROLES = {
@@ -15,8 +15,8 @@ export const USER_ROLES = {
 } as const;
 
 export const CONSULTATION_STATUS = {
-  IN_QUEUE: 'em-fila',
-  IN_PROGRESS: 'em-atendimento',
+  IN_QUEUE: 'em_fila',
+  IN_PROGRESS: 'em_atendimento',
   FINISHED: 'finalizado',
   CANCELLED: 'cancelado',
 } as const;
@@ -62,3 +62,7 @@ export const MEDICAL_RECORD_CONSTANTS = {
   MAX_NOTES_LENGTH: 5000,
   REQUIRED_FIELDS: ['diagnosis', 'treatment', 'notes'],
 } as const;
+
+// Decorator constants
+export const IS_PUBLIC_KEY = 'isPublic';
+export const ROLES_KEY = 'roles';
