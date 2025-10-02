@@ -15,14 +15,19 @@ import { ConsultationsService } from '../../application/services/consultations.s
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '@/shared/decorators/roles.decorator';
 import { CurrentUser } from '@/shared/decorators/current-user.decorator';
+import { RequireSpecialty } from '@/shared/decorators/specialty.decorator';
 import { UserRole, Specialty } from '@/shared/types';
+import { SpecialtyFilterService } from '@/shared/services/specialty-filter.service';
 
 @ApiTags('consultations')
 @Controller('consultations')
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class ConsultationsController {
-  constructor(private readonly consultationsService: ConsultationsService) {}
+  constructor(
+    private readonly consultationsService: ConsultationsService,
+    private readonly specialtyFilterService: SpecialtyFilterService,
+  ) {}
 
   @Post()
   @Roles(UserRole.paciente)
@@ -63,12 +68,18 @@ export class ConsultationsController {
   }
 
   @Get('queue/:specialty')
+  @RequireSpecialty(Specialty.psicologo, [UserRole.psicologo, UserRole.admin])
   @ApiOperation({ summary: 'Get consultation queue for specialty' })
   @ApiResponse({ status: 200, description: 'Queue retrieved successfully' })
   async getQueue(
     @Param('specialty') specialty: Specialty,
     @CurrentUser() user: any,
   ) {
+    // Additional specialty validation
+    if (!this.specialtyFilterService.canAccessSpecialty(user.role, specialty)) {
+      throw new Error('Access denied for this specialty');
+    }
+    
     return this.consultationsService.getQueue(specialty, user);
   }
 
