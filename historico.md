@@ -100,6 +100,14 @@
 - ✅ PatientMedicalHistory com filtros e busca
 - ✅ Sistema de prescrições e anexos
 - ✅ Registro automático durante consultas
+- ✅ Isolamento por especialidade implementado
+- ✅ SpecialtyGuard e SpecialtyFilterService para controle de acesso
+- ✅ Sistema de tempo de espera inteligente com cálculos históricos
+- ✅ WaitTimeService com cache Redis e analytics
+- ✅ Sistema 24h completo com disponibilidade em tempo real
+- ✅ AvailabilityService com modo emergência
+- ✅ Controles de status profissional e configuração 24h
+- ✅ Interface completa para gerenciamento de disponibilidade
 
 ## Autorização
 - ✅ Usuário autorizou continuar desenvolvimento sem permissão prévia

@@ -18,6 +18,7 @@ import { VideoModule } from './presentation/controllers/video/video.module';
 import { GatewayModule } from './presentation/gateway/gateway.module';
 import { WaitTimeModule } from './presentation/controllers/wait-time/wait-time.module';
 import { AvailabilityModule } from './presentation/controllers/availability/availability.module';
+import { PsychologistModule } from './presentation/controllers/psychologist/psychologist.module';
 
 // Global interceptors and filters
 import { ResponseInterceptor } from './presentation/interceptors/response.interceptor';
@@ -58,6 +59,7 @@ import { JwtAuthGuard } from './presentation/controllers/auth/guards/jwt-auth.gu
     GatewayModule,
     WaitTimeModule,
     AvailabilityModule,
+    PsychologistModule,
   ],
   providers: [
     // Global guards
