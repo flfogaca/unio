@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Put, Param, Body, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
-import { AvailabilityService } from '../../application/services/availability.service';
+import { AvailabilityService } from '@/application/services/availability.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '@/shared/decorators/current-user.decorator';
 import { Specialty } from '@/shared/types';
@@ -49,7 +49,6 @@ export class AvailabilityController {
     return this.availabilityService.updateProfessionalAvailability(
       user.id,
       body.isOnline,
-      body.status,
     );
   }
 

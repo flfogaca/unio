@@ -1,122 +1,100 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
-import { RedisService } from '@/infrastructure/external-services/redis.service';
 import { UserRole } from '@/shared/types';
-import { generateUUID } from '@/shared/utils';
 
 @Injectable()
 export class VideoService {
-  constructor(
-    private readonly prismaService: PrismaService,
-    private readonly redisService: RedisService,
-  ) {}
+  private readonly logger = new Logger(VideoService.name);
 
-  async createRoom(consultationId: string, user: any) {
-    // Verify consultation exists and user has access
-    const consultation = await this.prismaService.consultation.findUnique({
-      where: { id: consultationId },
-      include: {
-        patient: {
-          select: {
-            id: true,
-            name: true,
-            cpf: true,
-          },
-        },
-        professional: {
-          select: {
-            id: true,
-            name: true,
-            specialties: true,
-          },
-        },
-      },
-    });
+  constructor(private readonly prismaService: PrismaService) {}
 
-    if (!consultation) {
-      throw new NotFoundException('Consultação não encontrada');
-    }
-
-    // Check if user can access this consultation
-    if (!this.canAccessConsultation(consultation, user)) {
-      throw new ForbiddenException('Acesso negado à consulta');
-    }
-
-    // Check if consultation is in progress
-    if (consultation.status !== 'em_atendimento') {
-      throw new BadRequestException('Consultação não está em andamento');
-    }
-
-    // Check if room already exists
-    const existingRoom = await this.prismaService.videoCallRoom.findUnique({
-      where: { consultationId },
-    });
-
-    if (existingRoom) {
-      return existingRoom;
-    }
-
-    // Create new room
-    const roomId = generateUUID();
+  async createRoom(consultationId: string) {
+    const roomId = this.generateRoomId();
+    
     const room = await this.prismaService.videoCallRoom.create({
       data: {
-        id: generateUUID(),
-        consultationId,
         roomId,
+        consultationId,
         expiresAt: new Date(Date.now() + 2 * 60 * 60 * 1000), // 2 hours
       },
     });
 
-    // Update consultation with room ID
-    await this.prismaService.consultation.update({
-      where: { id: consultationId },
-      data: { roomId },
-    });
-
-    // Store room in Redis for quick access
-    await this.redisService.createVideoRoom(roomId, consultationId, 7200);
-
-    // Create audit log
-    await this.prismaService.createAuditLog({
-      userId: user.id,
-      action: 'create_video_room',
-      entityType: 'VideoCallRoom',
-      entityId: room.id,
-      newData: {
-        consultationId,
-        roomId,
-        expiresAt: room.expiresAt,
-      },
-    });
-
-    return {
-      ...room,
-      consultation,
-    };
+    this.logger.log(`Created video room ${roomId} for consultation ${consultationId}`);
+    return room;
   }
 
-  async getRoom(roomId: string, user: any) {
+  async getRoom(roomId: string) {
     const room = await this.prismaService.videoCallRoom.findUnique({
       where: { roomId },
       include: {
-        consultation: {
-          include: {
-            patient: {
-              select: {
-                id: true,
-                name: true,
-                cpf: true,
-              },
-            },
-            professional: {
-              select: {
-                id: true,
-                name: true,
-                specialties: true,
-              },
-            },
-          },
-        },
+        participants: true,
+      },
+    });
+
+    if (!room) {
+      throw new NotFoundException('Sala de vídeo não encontrada');
+    }
+
+    return room;
+  }
+
+  async addParticipant(roomId: string, userId: string, socketId: string) {
+    const room = await this.prismaService.videoCallRoom.findUnique({
+      where: { roomId },
+      include: {
+        participants: true,
+      },
+    });
+
+    if (!room) {
+      throw new NotFoundException('Sala de vídeo não encontrada');
+    }
+
+    // Check if participant already exists
+    const existingParticipant = room.participants.find(p => p.userId === userId);
+    if (existingParticipant) {
+      return this.prismaService.videoCallParticipant.update({
+        where: { id: existingParticipant.id },
+        data: { socketId },
+      });
+    }
+
+    // Check room capacity (max 2 participants)
+    if (room.participants.length >= 2) {
+      throw new Error('Sala de vídeo está lotada');
+    }
+
+    return this.prismaService.videoCallParticipant.create({
+      data: {
+        roomId: room.id,
+        userId,
+        socketId,
+        joinedAt: new Date(),
+      },
+    });
+  }
+
+  async removeParticipant(roomId: string, userId: string) {
+    const room = await this.prismaService.videoCallRoom.findUnique({
+      where: { roomId },
+    });
+
+    if (!room) {
+      throw new NotFoundException('Sala de vídeo não encontrada');
+    }
+
+    return this.prismaService.videoCallParticipant.deleteMany({
+      where: {
+        roomId: room.id,
+        userId,
+      },
+    });
+  }
+
+  async getRoomParticipants(roomId: string) {
+    const room = await this.prismaService.videoCallRoom.findUnique({
+      where: { roomId },
+      include: {
         participants: {
           include: {
             user: {
@@ -132,101 +110,80 @@ export class VideoService {
     });
 
     if (!room) {
-      throw new NotFoundException('Sala não encontrada');
+      throw new NotFoundException('Sala de vídeo não encontrada');
     }
 
-    // Check if user can access this room
-    if (!this.canAccessConsultation(room.consultation, user)) {
-      throw new ForbiddenException('Acesso negado à sala');
+    return room.participants;
+  }
+
+  async canAccessRoom(roomId: string, user: any): Promise<boolean> {
+    const room = await this.prismaService.videoCallRoom.findUnique({
+      where: { roomId },
+    });
+
+    if (!room) {
+      return false;
     }
 
-    // Check if room is expired
-    if (room.expiresAt < new Date()) {
-      throw new BadRequestException('Sala expirada');
+    // Get consultation to check access
+    const consultation = await this.prismaService.consultation.findUnique({
+      where: { id: room.consultationId },
+    });
+
+    if (!consultation) {
+      return false;
     }
 
-    return room;
+    return this.canAccessConsultation(consultation, user);
+  }
+
+  private canAccessConsultation(consultation: any, user: any): boolean {
+    // Admin can access all consultations
+    if (user.role === UserRole.admin) {
+      return true;
+    }
+
+    // Patient can access their own consultations
+    if (user.role === UserRole.paciente && consultation.patientId === user.id) {
+      return true;
+    }
+
+    // Professionals can access consultations they're assigned to
+    if ([UserRole.dentista, UserRole.psicologo, UserRole.medico].includes(user.role)) {
+      return consultation.professionalId === user.id;
+    }
+
+    return false;
+  }
+
+  async cleanupExpiredRooms() {
+    const expiredRooms = await this.prismaService.videoCallRoom.findMany({
+      where: {
+        expiresAt: {
+          lt: new Date(),
+        },
+      },
+    });
+
+    for (const room of expiredRooms) {
+      await this.prismaService.videoCallRoom.delete({
+        where: { id: room.id },
+      });
+      this.logger.log(`Cleaned up expired video room ${room.roomId}`);
+    }
+
+    return expiredRooms.length;
   }
 
   async joinRoom(roomId: string, socketId: string, user: any) {
-    const room = await this.prismaService.videoCallRoom.findUnique({
-      where: { roomId },
-      include: {
-        consultation: true,
-        participants: true,
-      },
-    });
-
-    if (!room) {
-      throw new NotFoundException('Sala não encontrada');
-    }
-
-    // Check if user can access this room
-    if (!this.canAccessConsultation(room.consultation, user)) {
-      throw new ForbiddenException('Acesso negado à sala');
-    }
-
-    // Check if room is expired
-    if (room.expiresAt < new Date()) {
-      throw new BadRequestException('Sala expirada');
-    }
-
-    // Check if user is already in the room
-    const existingParticipant = room.participants.find(p => p.userId === user.id);
-    
-    if (existingParticipant) {
-      // Update socket ID
-      await this.prismaService.videoCallParticipant.update({
-        where: { id: existingParticipant.id },
-        data: {
-          socketId,
-          leftAt: null,
-        },
-      });
-    } else {
-      // Check room capacity
-      if (room.participants.length >= 2) {
-        throw new BadRequestException('Sala cheia');
-      }
-
-      // Add new participant
-      await this.prismaService.videoCallParticipant.create({
-        data: {
-          id: generateUUID(),
-          roomId: room.id,
-          userId: user.id,
-          socketId,
-        },
-      });
-    }
-
-    // Create audit log
-    await this.prismaService.createAuditLog({
-      userId: user.id,
-      action: 'join_video_room',
-      entityType: 'VideoCallRoom',
-      entityId: room.id,
-      newData: {
-        roomId,
-        socketId,
-      },
-    });
-
-    return { message: 'Entrou na sala com sucesso' };
+    return this.joinRoom(roomId, user.id, socketId);
   }
 
   async leaveRoom(roomId: string, user: any) {
-    const room = await this.prismaService.videoCallRoom.findUnique({
-      where: { roomId },
-    });
-
-    if (!room) {
-      throw new NotFoundException('Sala não encontrada');
-    }
-
+    // Find participant by user ID and update leftAt
     const participant = await this.prismaService.videoCallParticipant.findFirst({
       where: {
-        roomId: room.id,
+        roomId,
         userId: user.id,
       },
     });
@@ -238,95 +195,29 @@ export class VideoService {
       });
     }
 
-    // Create audit log
-    await this.prismaService.createAuditLog({
-      userId: user.id,
-      action: 'leave_video_room',
-      entityType: 'VideoCallRoom',
-      entityId: room.id,
-      newData: {
-        roomId,
-        leftAt: new Date(),
-      },
-    });
-
-    return { message: 'Saiu da sala com sucesso' };
+    return { message: 'Left room successfully' };
   }
 
   async getActiveRooms(user: any) {
-    let where: any = {
-      isActive: true,
-      expiresAt: {
-        gt: new Date(),
-      },
-    };
-
-    // Filter by user's consultations
-    if (user.role === UserRole.paciente) {
-      where.consultation = {
-        patientId: user.id,
-      };
-    } else if ([UserRole.dentista, UserRole.psicologo, UserRole.medico].includes(user.role)) {
-      where.consultation = {
-        professionalId: user.id,
-      };
-    }
-
     const rooms = await this.prismaService.videoCallRoom.findMany({
-      where,
-      include: {
-        consultation: {
-          include: {
-            patient: {
-              select: {
-                id: true,
-                name: true,
-                cpf: true,
-              },
-            },
-            professional: {
-              select: {
-                id: true,
-                name: true,
-                specialties: true,
-              },
-            },
-          },
-        },
+      where: {
+        isActive: true,
         participants: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                role: true,
-              },
-            },
+          some: {
+            userId: user.id,
+            leftAt: null,
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      include: {
+        participants: true,
+      },
     });
 
     return rooms;
   }
 
-  private canAccessConsultation(consultation: any, user: any): boolean {
-    // Patient can access their own consultations
-    if (user.role === UserRole.paciente && consultation.patientId === user.id) {
-      return true;
-    }
-
-    // Professional can access consultations they're assigned to
-    if (consultation.professionalId === user.id) {
-      return true;
-    }
-
-    // Admin can access all consultations
-    if (user.role === UserRole.admin) {
-      return true;
-    }
-
-    return false;
+  private generateRoomId(): string {
+    return `room_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 }

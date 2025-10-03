@@ -11,7 +11,7 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
-import { MedicalRecordsService } from '../../application/services/medical-records.service';
+import { MedicalRecordsService } from '@/application/services/medical-records.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '@/shared/decorators/current-user.decorator';
 
@@ -34,7 +34,7 @@ export class MedicalRecordsController {
   @ApiResponse({ status: 200, description: 'Medical record retrieved successfully' })
   @ApiResponse({ status: 404, description: 'Medical record not found' })
   async findOne(@Param('id') id: string, @CurrentUser() user: any) {
-    return this.medicalRecordsService.findOne(id, user);
+    return this.medicalRecordsService.findOne(id);
   }
 
   @Post()
@@ -45,7 +45,7 @@ export class MedicalRecordsController {
     @Body(ValidationPipe) createMedicalRecordDto: any,
     @CurrentUser() user: any,
   ) {
-    return this.medicalRecordsService.create(createMedicalRecordDto, user);
+    return this.medicalRecordsService.create(createMedicalRecordDto);
   }
 
   @Patch(':id')
@@ -57,7 +57,7 @@ export class MedicalRecordsController {
     @Body(ValidationPipe) updateMedicalRecordDto: any,
     @CurrentUser() user: any,
   ) {
-    return this.medicalRecordsService.update(id, updateMedicalRecordDto, user);
+    return this.medicalRecordsService.update(id, updateMedicalRecordDto);
   }
 
   @Patch(':id/share')
@@ -68,7 +68,7 @@ export class MedicalRecordsController {
     @Body('professionalId') professionalId: string,
     @CurrentUser() user: any,
   ) {
-    return this.medicalRecordsService.share(id, professionalId, user);
+    return this.medicalRecordsService.share(id, professionalId);
   }
 
   @Delete(':id/share/:professionalId')
@@ -79,6 +79,6 @@ export class MedicalRecordsController {
     @Param('professionalId') professionalId: string,
     @CurrentUser() user: any,
   ) {
-    return this.medicalRecordsService.unshare(id, professionalId, user);
+    return this.medicalRecordsService.unshare(id, professionalId);
   }
 }

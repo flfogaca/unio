@@ -353,7 +353,7 @@ export class QueueGateway implements OnGatewayConnection, OnGatewayDisconnect {
     
     const onlineProfessionals = await this.prismaService.user.count({
       where: {
-        role: this.getRoleForSpecialty(specialty),
+        role: this.getRoleForSpecialty(specialty) as any,
         isOnline: true,
         isActive: true,
       },
@@ -399,10 +399,7 @@ export class QueueGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     await this.prismaService.queueStatistics.upsert({
       where: {
-        specialty_date: {
-          specialty: specialty as any,
-          date: today,
-        },
+        id: `stats-${specialty}-${today.toISOString().split('T')[0]}`,
       },
       update: {
         totalInQueue: queueLength,
@@ -410,7 +407,7 @@ export class QueueGateway implements OnGatewayConnection, OnGatewayDisconnect {
         totalFinished: completed,
       },
       create: {
-        id: this.generateUUID(),
+        id: `stats-${specialty}-${today.toISOString().split('T')[0]}`,
         specialty: specialty as any,
         date: today,
         totalInQueue: queueLength,

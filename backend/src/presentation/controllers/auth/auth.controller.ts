@@ -10,9 +10,9 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
-import { AuthService } from '../../application/services/auth.service';
-import { LoginDto } from '../../application/dto/login.dto';
-import { RegisterDto } from '../../application/dto/register.dto';
+import { AuthService } from '@/application/services/auth.service';
+import { LoginDto } from '@/application/dto/login.dto';
+import { RegisterDto } from '@/application/dto/register.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { LocalAuthGuard } from './guards/local-auth.guard';
 import { Public } from '@/shared/decorators/public.decorator';

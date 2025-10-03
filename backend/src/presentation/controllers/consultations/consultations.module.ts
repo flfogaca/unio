@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConsultationsController } from './consultations.controller';
-import { ConsultationsService } from '../../application/services/consultations.service';
+import { ConsultationsService } from '@/application/services/consultations.service';
 import { SpecialtyFilterService } from '@/shared/services/specialty-filter.service';
 
 @Module({

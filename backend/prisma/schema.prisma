@@ -66,10 +66,38 @@ model User {
   medicalRecordsAsPatient     MedicalRecord[]    @relation("PatientRecords")
   medicalRecordsAsProfessional MedicalRecord[]   @relation("ProfessionalRecords")
   notifications               Notification[]
-  videoCallRooms             VideoCallRoom[]
   videoCallParticipants      VideoCallParticipant[]
+  doctor                     Doctor?
 
   @@map("users")
+}
+
+// SpecialtyConfig model
+model SpecialtyConfig {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  description String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("specialty_configs")
+}
+
+// Doctor model
+model Doctor {
+  id          String    @id @default(uuid())
+  userId      String    @unique
+  specialtyId String?
+  crm         String?   // Medical registration number
+  isAvailable Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("doctors")
 }
 
 // Consultation model
@@ -79,6 +107,7 @@ model Consultation {
   professionalId    String?
   specialty         Specialty
   description       String
+  reason            String?
   status            ConsultationStatus  @default(em_fila)
   priority          ConsultationPriority @default(media)
   position          Int                 @default(1)
@@ -86,6 +115,7 @@ model Consultation {
   scheduledAt       DateTime?
   startedAt         DateTime?
   finishedAt        DateTime?
+  endedAt           DateTime?
   notes             String?
   attachments       String[]            @default([])
   roomId            String?
@@ -96,7 +126,6 @@ model Consultation {
   patient           User                @relation("PatientConsultations", fields: [patientId], references: [id], onDelete: Cascade)
   professional      User?               @relation("ProfessionalConsultations", fields: [professionalId], references: [id], onDelete: SetNull)
   medicalRecord     MedicalRecord?
-  videoCallRoom     VideoCallRoom?      @relation(fields: [roomId], references: [id])
   notifications     Notification[]
 
   @@map("consultations")
@@ -124,8 +153,43 @@ model MedicalRecord {
   consultation    Consultation @relation(fields: [consultationId], references: [id], onDelete: Cascade)
   patient         User         @relation("PatientRecords", fields: [patientId], references: [id], onDelete: Cascade)
   professional    User         @relation("ProfessionalRecords", fields: [professionalId], references: [id], onDelete: Cascade)
+  prescriptions   Prescription[]
+  certificates    Certificate[]
 
   @@map("medical_records")
+}
+
+// Prescription model
+model Prescription {
+  id              String        @id @default(uuid())
+  medicalRecordId String
+  medication      String
+  dosage          String
+  instructions    String
+  issuedAt        DateTime      @default(now())
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relations
+  medicalRecord   MedicalRecord @relation(fields: [medicalRecordId], references: [id], onDelete: Cascade)
+
+  @@map("prescriptions")
+}
+
+// Certificate model
+model Certificate {
+  id              String        @id @default(uuid())
+  medicalRecordId String
+  type            String
+  description     String
+  issuedAt        DateTime      @default(now())
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relations
+  medicalRecord   MedicalRecord @relation(fields: [medicalRecordId], references: [id], onDelete: Cascade)
+
+  @@map("certificates")
 }
 
 // Video Call Room model
@@ -139,7 +203,6 @@ model VideoCallRoom {
   updatedAt     DateTime  @updatedAt
 
   // Relations
-  consultation  Consultation           @relation(fields: [consultationId], references: [id], onDelete: Cascade)
   participants  VideoCallParticipant[]
 
   @@map("video_call_rooms")
@@ -195,7 +258,6 @@ model QueueStatistics {
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
-  @@unique([specialty, date])
   @@map("queue_statistics")
 }
 

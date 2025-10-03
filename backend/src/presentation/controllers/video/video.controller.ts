@@ -7,7 +7,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
-import { VideoService } from '../../application/services/video.service';
+import { VideoService } from '@/application/services/video.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '@/shared/decorators/current-user.decorator';
 
@@ -26,7 +26,7 @@ export class VideoController {
     @Param('consultationId') consultationId: string,
     @CurrentUser() user: any,
   ) {
-    return this.videoService.createRoom(consultationId, user);
+    return this.videoService.createRoom(consultationId);
   }
 
   @Get('room/:roomId')
@@ -37,7 +37,7 @@ export class VideoController {
     @Param('roomId') roomId: string,
     @CurrentUser() user: any,
   ) {
-    return this.videoService.getRoom(roomId, user);
+    return this.videoService.getRoom(roomId);
   }
 
   @Post('room/:roomId/join')

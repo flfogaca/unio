@@ -1,12 +1,8 @@
 // Common types used across the application
+import { UserRole, ConsultationStatus, ConsultationPriority, Specialty } from '@prisma/client';
 
-export type UserRole = 'paciente' | 'dentista' | 'psicologo' | 'medico' | 'admin';
-
-export type ConsultationStatus = 'em-fila' | 'em-atendimento' | 'finalizado' | 'cancelado';
-
-export type ConsultationPriority = 'baixa' | 'media' | 'alta' | 'urgente';
-
-export type Specialty = 'psicologo' | 'dentista' | 'medico-clinico';
+// Re-export Prisma enums as types for convenience
+export { UserRole, ConsultationStatus, ConsultationPriority, Specialty };
 
 export interface BaseEntity {
   id: string;

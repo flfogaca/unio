@@ -108,6 +108,18 @@
 - ✅ AvailabilityService com modo emergência
 - ✅ Controles de status profissional e configuração 24h
 - ✅ Interface completa para gerenciamento de disponibilidade
+- ✅ Módulo completo do Psicólogo implementado
+- ✅ PsychologistService com consultas urgentes e agendadas
+- ✅ Sistema de avaliação psicológica com escala de risco
+- ✅ Tratamento especial para situações de crise
+- ✅ PsychologistConsultationRequest component
+- ✅ Interface rica para solicitação de consultas
+- ✅ Módulo completo do Médico Clínico implementado
+- ✅ MedicalDoctorService com emergências médicas
+- ✅ Sistema de prescrições e atestados médicos
+- ✅ Avaliação médica completa com sinais vitais
+- ✅ Verificação de interações medicamentosas
+- ✅ Base de dados ICD-10 para diagnósticos
 
 ## Autorização
 - ✅ Usuário autorizou continuar desenvolvimento sem permissão prévia

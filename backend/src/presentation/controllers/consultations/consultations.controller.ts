@@ -11,7 +11,7 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
-import { ConsultationsService } from '../../application/services/consultations.service';
+import { ConsultationsService } from '@/application/services/consultations.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '@/shared/decorators/roles.decorator';
 import { CurrentUser } from '@/shared/decorators/current-user.decorator';
@@ -52,18 +52,19 @@ export class ConsultationsController {
   @ApiQuery({ name: 'status', required: false, type: String })
   @ApiQuery({ name: 'specialty', required: false, enum: Specialty })
   async findAll(
+    @CurrentUser() user: any,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
     @Query('status') status?: string,
     @Query('specialty') specialty?: Specialty,
-    @CurrentUser() user: any,
   ) {
     return this.consultationsService.findAll({
       page,
       limit,
       status,
       specialty,
-      user,
+      userId: user.id,
+      userRole: user.role,
     });
   }
 
@@ -80,15 +81,15 @@ export class ConsultationsController {
       throw new Error('Access denied for this specialty');
     }
     
-    return this.consultationsService.getQueue(specialty, user);
+    return this.consultationsService.getQueue(specialty);
   }
 
   @Get('my-queue')
   @Roles(UserRole.paciente)
   @ApiOperation({ summary: 'Get my consultation queue (Patients only)' })
   @ApiResponse({ status: 200, description: 'My queue retrieved successfully' })
-  async getMyQueue(@CurrentUser() user: any) {
-    return this.consultationsService.getMyQueue(user.id);
+  async getMyQueue(@CurrentUser() user: any, @Query('specialty') specialty: Specialty) {
+    return this.consultationsService.getMyQueue(user.id, specialty);
   }
 
   @Get('professional-queue')
@@ -96,7 +97,7 @@ export class ConsultationsController {
   @ApiOperation({ summary: 'Get professional queue (Professionals only)' })
   @ApiResponse({ status: 200, description: 'Professional queue retrieved successfully' })
   async getProfessionalQueue(@CurrentUser() user: any) {
-    return this.consultationsService.getProfessionalQueue(user);
+    return this.consultationsService.getProfessionalQueue(user.id, user.specialties[0] as Specialty);
   }
 
   @Get(':id')
@@ -104,7 +105,7 @@ export class ConsultationsController {
   @ApiResponse({ status: 200, description: 'Consultation retrieved successfully' })
   @ApiResponse({ status: 404, description: 'Consultation not found' })
   async findOne(@Param('id') id: string, @CurrentUser() user: any) {
-    return this.consultationsService.findOne(id, user);
+    return this.consultationsService.findOne(id);
   }
 
   @Patch(':id/assume')
@@ -124,7 +125,7 @@ export class ConsultationsController {
   @ApiResponse({ status: 404, description: 'Consultation not found' })
   @ApiResponse({ status: 400, description: 'Cannot start this consultation' })
   async start(@Param('id') id: string, @CurrentUser() user: any) {
-    return this.consultationsService.start(id, user.id);
+    return this.consultationsService.start(id);
   }
 
   @Patch(':id/finish')
@@ -138,7 +139,7 @@ export class ConsultationsController {
     @Body(ValidationPipe) finishData: any,
     @CurrentUser() user: any,
   ) {
-    return this.consultationsService.finish(id, user.id, finishData);
+    return this.consultationsService.finish(id, finishData.notes);
   }
 
   @Patch(':id/cancel')
@@ -151,7 +152,7 @@ export class ConsultationsController {
     @Body('reason') reason: string,
     @CurrentUser() user: any,
   ) {
-    return this.consultationsService.cancel(id, user, reason);
+    return this.consultationsService.cancel(id, reason);
   }
 
   @Get('statistics/queue')

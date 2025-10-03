@@ -111,6 +111,22 @@ async function main() {
     },
   });
 
+  const patient3Password = await bcrypt.hash('patient123', 10);
+  const patient3 = await prisma.user.upsert({
+    where: { email: 'patient3@unio.com' },
+    update: {},
+    create: {
+      cpf: '12345678907',
+      email: 'patient3@unio.com',
+      password: patient3Password,
+      name: 'Julia Ferreira',
+      role: UserRole.paciente,
+      phone: '(11) 99999-9993',
+      birthDate: new Date('1992-03-10'),
+      isActive: true,
+    },
+  });
+
   // Create sample consultations
   const consultation1 = await prisma.consultation.create({
     data: {
@@ -215,15 +231,8 @@ async function main() {
   ];
 
   for (const stat of queueStats) {
-    await prisma.queueStatistics.upsert({
-      where: {
-        specialty_date: {
-          specialty: stat.specialty,
-          date: stat.date,
-        },
-      },
-      update: {},
-      create: stat,
+    await prisma.queueStatistics.create({
+      data: stat,
     });
   }
 
@@ -235,6 +244,7 @@ async function main() {
   console.log(`- Medical Doctor: ${medicalDoctor.email} (password: medical123)`);
   console.log(`- Patient 1: ${patient1.email} (password: patient123)`);
   console.log(`- Patient 2: ${patient2.email} (password: patient123)`);
+  console.log(`- Patient 3: ${patient3.email} (password: patient123)`);
   console.log('\n📋 Created consultations:');
   console.log(`- Consultation 1: ${consultation1.id} (Dentist - High Priority)`);
   console.log(`- Consultation 2: ${consultation2.id} (Psychologist - Urgent)`);

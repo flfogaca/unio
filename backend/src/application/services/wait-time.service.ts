@@ -1,37 +1,23 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { RedisService } from '@/infrastructure/external-services/redis.service';
-import { Specialty, PriorityLevel } from '@/shared/types';
-
-interface WaitTimeCalculation {
-  specialty: Specialty;
-  estimatedWaitTime: number; // in minutes
-  queueLength: number;
-  onlineProfessionals: number;
-  averageConsultationDuration: number;
-  lastCalculated: Date;
-  confidence: 'high' | 'medium' | 'low';
-}
-
-interface HistoricalData {
-  averageWaitTime: number;
-  averageDuration: number;
-  consultationCount: number;
-  peakHours: number[];
-  offPeakHours: number[];
-}
+import { Specialty } from '@/shared/types';
 
 @Injectable()
 export class WaitTimeService {
   private readonly logger = new Logger(WaitTimeService.name);
-  
-  // Cache duration for wait time calculations (5 minutes)
-  private readonly CACHE_DURATION = 5 * 60;
-  
-  // Default consultation durations by specialty (in minutes)
+
+  // Default consultation durations in minutes
   private readonly DEFAULT_DURATIONS: Record<Specialty, number> = {
     [Specialty.psicologo]: 45,
     [Specialty.dentista]: 30,
+    [Specialty.medico_clinico]: 20,
+  };
+
+  // Default average wait times in minutes
+  private readonly DEFAULT_WAIT_TIMES: Record<Specialty, number> = {
+    [Specialty.psicologo]: 10,
+    [Specialty.dentista]: 15,
     [Specialty.medico_clinico]: 20,
   };
 
@@ -40,317 +26,228 @@ export class WaitTimeService {
     private readonly redisService: RedisService,
   ) {}
 
-  /**
-   * Calculate estimated wait time for a specialty
-   */
-  async calculateWaitTime(specialty: Specialty): Promise<WaitTimeCalculation> {
-    const cacheKey = `wait-time:${specialty}`;
-    
-    // Try to get from cache first
-    const cached = await this.redisService.get(cacheKey);
-    if (cached) {
-      try {
-        return JSON.parse(cached);
-      } catch (error) {
-        this.logger.warn(`Failed to parse cached wait time for ${specialty}:`, error);
+  async calculateWaitTime(specialty: Specialty): Promise<number> {
+    try {
+      // Try to get from cache first
+      const cachedWaitTime = await this.getCachedWaitTime(specialty);
+      if (cachedWaitTime !== null) {
+        return cachedWaitTime;
       }
-    }
 
-    // Calculate new wait time
-    const calculation = await this.performWaitTimeCalculation(specialty);
-    
-    // Cache the result
-    await this.redisService.set(cacheKey, JSON.stringify(calculation), this.CACHE_DURATION);
-    
-    return calculation;
-  }
-
-  /**
-   * Get wait time for multiple specialties
-   */
-  async getWaitTimesForSpecialties(specialties: Specialty[]): Promise<WaitTimeCalculation[]> {
-    const calculations = await Promise.all(
-      specialties.map(specialty => this.calculateWaitTime(specialty))
-    );
-    
-    return calculations;
-  }
-
-  /**
-   * Get real-time queue position and estimated wait time for a specific consultation
-   */
-  async getConsultationWaitTime(consultationId: string): Promise<{
-    position: number;
-    estimatedWaitTime: number;
-    specialty: Specialty;
-  }> {
-    const consultation = await this.prismaService.consultation.findUnique({
-      where: { id: consultationId },
-      include: {
-        specialty: true,
-      },
-    });
-
-    if (!consultation) {
-      throw new Error('Consultation not found');
-    }
-
-    // Get queue position
-    const position = await this.getQueuePosition(consultationId, consultation.specialty as Specialty);
-    
-    // Calculate wait time based on position and specialty
-    const specialtyWaitTime = await this.calculateWaitTime(consultation.specialty as Specialty);
-    const estimatedWaitTime = Math.round((position - 1) * (specialtyWaitTime.averageConsultationDuration / specialtyWaitTime.onlineProfessionals));
-
-    return {
-      position,
-      estimatedWaitTime,
-      specialty: consultation.specialty as Specialty,
-    };
-  }
-
-  /**
-   * Update wait time when consultation status changes
-   */
-  async updateWaitTimeOnStatusChange(
-    consultationId: string,
-    oldStatus: string,
-    newStatus: string,
-    specialty: Specialty,
-  ): Promise<void> {
-    // Clear cache when queue changes
-    const cacheKey = `wait-time:${specialty}`;
-    await this.redisService.del(cacheKey);
-
-    // Update queue statistics
-    await this.updateQueueStatistics(specialty);
-
-    // Log the change for analytics
-    this.logger.log(`Consultation ${consultationId} status changed from ${oldStatus} to ${newStatus} for specialty ${specialty}`);
-  }
-
-  /**
-   * Get historical wait time data for analytics
-   */
-  async getHistoricalData(specialty: Specialty, days: number = 7): Promise<HistoricalData> {
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
-
-    const consultations = await this.prismaService.consultation.findMany({
-      where: {
-        specialty: specialty as any,
-        createdAt: {
-          gte: startDate,
-        },
-        status: 'finalizado',
-      },
-      select: {
-        createdAt: true,
-        startedAt: true,
-        finishedAt: true,
-      },
-    });
-
-    if (consultations.length === 0) {
-      return {
-        averageWaitTime: 0,
-        averageDuration: this.DEFAULT_DURATIONS[specialty],
-        consultationCount: 0,
-        peakHours: [],
-        offPeakHours: [],
-      };
-    }
-
-    // Calculate average wait time (time between creation and start)
-    const waitTimes = consultations
-      .filter(c => c.startedAt)
-      .map(c => {
-        const waitTime = c.startedAt!.getTime() - c.createdAt.getTime();
-        return Math.round(waitTime / (1000 * 60)); // Convert to minutes
-      });
-
-    // Calculate average duration
-    const durations = consultations
-      .filter(c => c.startedAt && c.finishedAt)
-      .map(c => {
-        const duration = c.finishedAt!.getTime() - c.startedAt!.getTime();
-        return Math.round(duration / (1000 * 60)); // Convert to minutes
-      });
-
-    // Analyze peak hours
-    const hourlyCounts = new Array(24).fill(0);
-    consultations.forEach(c => {
-      const hour = c.createdAt.getHours();
-      hourlyCounts[hour]++;
-    });
-
-    const averageConsultations = consultations.length / 24;
-    const peakHours = hourlyCounts
-      .map((count, hour) => ({ hour, count }))
-      .filter(item => item.count > averageConsultations * 1.5)
-      .map(item => item.hour);
-
-    const offPeakHours = hourlyCounts
-      .map((count, hour) => ({ hour, count }))
-      .filter(item => item.count < averageConsultations * 0.5)
-      .map(item => item.hour);
-
-    return {
-      averageWaitTime: waitTimes.length > 0 ? Math.round(waitTimes.reduce((a, b) => a + b, 0) / waitTimes.length) : 0,
-      averageDuration: durations.length > 0 ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : this.DEFAULT_DURATIONS[specialty],
-      consultationCount: consultations.length,
-      peakHours,
-      offPeakHours,
-    };
-  }
-
-  /**
-   * Get queue statistics for dashboard
-   */
-  async getQueueStatistics(specialty: Specialty) {
-    const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-    const [
-      queueLength,
-      inProgress,
-      completedToday,
-      onlineProfessionals,
-    ] = await Promise.all([
-      // Queue length
-      this.prismaService.consultation.count({
-        where: {
-          specialty: specialty as any,
-          status: 'em_fila',
-        },
-      }),
+      // Calculate based on current queue and historical data
+      const queueLength = await this.getQueueLength(specialty);
+      const onlineProfessionals = await this.getOnlineProfessionals(specialty);
       
-      // In progress
-      this.prismaService.consultation.count({
-        where: {
-          specialty: specialty as any,
-          status: 'em_atendimento',
-        },
-      }),
-      
-      // Completed today
-      this.prismaService.consultation.count({
-        where: {
-          specialty: specialty as any,
-          status: 'finalizado',
-          finishedAt: {
-            gte: todayStart,
-          },
-        },
-      }),
-      
-      // Online professionals
-      this.prismaService.user.count({
-        where: {
-          role: this.getRoleForSpecialty(specialty),
-          isActive: true,
-          isOnline: true,
-        },
-      }),
-    ]);
-
-    return {
-      specialty,
-      queueLength,
-      inProgress,
-      completedToday,
-      onlineProfessionals,
-      lastUpdated: now,
-    };
-  }
-
-  /**
-   * Perform the actual wait time calculation
-   */
-  private async performWaitTimeCalculation(specialty: Specialty): Promise<WaitTimeCalculation> {
-    const [
-      queueLength,
-      onlineProfessionals,
-      historicalData,
-    ] = await Promise.all([
-      this.getQueueLength(specialty),
-      this.getOnlineProfessionalsCount(specialty),
-      this.getHistoricalData(specialty, 7),
-    ]);
-
-    const averageConsultationDuration = historicalData.averageDuration || this.DEFAULT_DURATIONS[specialty];
-    
-    // Calculate estimated wait time
-    let estimatedWaitTime = 0;
-    let confidence: 'high' | 'medium' | 'low' = 'low';
-
-    if (onlineProfessionals > 0) {
-      // Base calculation: queue length * average duration / professionals
-      const baseWaitTime = Math.round((queueLength * averageConsultationDuration) / onlineProfessionals);
-      
-      // Adjust based on historical data
-      const historicalAdjustment = historicalData.averageWaitTime > 0 ? 
-        (historicalData.averageWaitTime + baseWaitTime) / 2 : baseWaitTime;
-      
-      // Time of day adjustment
-      const currentHour = new Date().getHours();
-      const isPeakHour = historicalData.peakHours.includes(currentHour);
-      const isOffPeakHour = historicalData.offPeakHours.includes(currentHour);
-      
-      if (isPeakHour) {
-        estimatedWaitTime = Math.round(historicalAdjustment * 1.3);
-        confidence = 'medium';
-      } else if (isOffPeakHour) {
-        estimatedWaitTime = Math.round(historicalAdjustment * 0.7);
-        confidence = 'high';
-      } else {
-        estimatedWaitTime = Math.round(historicalAdjustment);
-        confidence = historicalData.consultationCount > 10 ? 'high' : 'medium';
+      if (onlineProfessionals === 0) {
+        return this.DEFAULT_WAIT_TIMES[specialty];
       }
-    }
 
-    return {
-      specialty,
-      estimatedWaitTime,
-      queueLength,
-      onlineProfessionals,
-      averageConsultationDuration,
-      lastCalculated: new Date(),
-      confidence,
-    };
+      const averageDuration = await this.getAverageDuration(specialty);
+      const calculatedWaitTime = (queueLength * averageDuration) / onlineProfessionals;
+
+      // Cache the result for 5 minutes
+      await this.cacheWaitTime(specialty, calculatedWaitTime);
+
+      return Math.round(calculatedWaitTime);
+    } catch (error) {
+      this.logger.error('Error calculating wait time:', error);
+      return this.DEFAULT_WAIT_TIMES[specialty];
+    }
   }
 
-  /**
-   * Get current queue length for a specialty
-   */
-  private async getQueueLength(specialty: Specialty): Promise<number> {
+  async getQueueLength(specialty: Specialty): Promise<number> {
     return this.prismaService.consultation.count({
       where: {
-        specialty: specialty as any,
+        specialty,
         status: 'em_fila',
       },
     });
   }
 
-  /**
-   * Get count of online professionals for a specialty
-   */
-  private async getOnlineProfessionalsCount(specialty: Specialty): Promise<number> {
+  async getOnlineProfessionals(specialty: Specialty): Promise<number> {
     const role = this.getRoleForSpecialty(specialty);
     
     return this.prismaService.user.count({
       where: {
-        role,
-        isActive: true,
+        role: role as any,
         isOnline: true,
+        isActive: true,
       },
     });
   }
 
-  /**
-   * Get queue position for a specific consultation
-   */
-  private async getQueuePosition(consultationId: string, specialty: Specialty): Promise<number> {
+  async getAverageDuration(specialty: Specialty): Promise<number> {
+    try {
+      // Get recent consultations for this specialty
+      const recentConsultations = await this.prismaService.consultation.findMany({
+        where: {
+          specialty,
+          status: 'finalizado',
+          startedAt: { not: null },
+          finishedAt: { not: null },
+          createdAt: {
+            gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // Last 7 days
+          },
+        },
+        select: {
+          startedAt: true,
+          finishedAt: true,
+        },
+      });
+
+      if (recentConsultations.length === 0) {
+        return this.DEFAULT_DURATIONS[specialty];
+      }
+
+      // Calculate average duration
+      const totalDuration = recentConsultations.reduce((sum, consultation) => {
+        const duration = consultation.finishedAt.getTime() - consultation.startedAt.getTime();
+        return sum + duration;
+      }, 0);
+
+      const averageDurationMs = totalDuration / recentConsultations.length;
+      const averageDurationMinutes = Math.round(averageDurationMs / (1000 * 60));
+
+      return Math.max(averageDurationMinutes, 15); // Minimum 15 minutes
+    } catch (error) {
+      this.logger.error('Error calculating average duration:', error);
+      return this.DEFAULT_DURATIONS[specialty];
+    }
+  }
+
+  async updateQueueStatistics(specialty: Specialty): Promise<void> {
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const [
+        totalInQueue,
+        totalInProgress,
+        totalFinished,
+        averageWaitTime,
+        averageDuration,
+      ] = await Promise.all([
+        this.getQueueLength(specialty),
+        this.prismaService.consultation.count({
+          where: {
+            specialty,
+            status: 'em_atendimento',
+            createdAt: {
+              gte: today,
+            },
+          },
+        }),
+        this.prismaService.consultation.count({
+          where: {
+            specialty,
+            status: 'finalizado',
+            createdAt: {
+              gte: today,
+            },
+          },
+        }),
+        this.calculateWaitTime(specialty),
+        this.getAverageDuration(specialty),
+      ]);
+
+      const onlineProfessionals = await this.getOnlineProfessionals(specialty);
+
+      // Update or create queue statistics
+      await this.prismaService.queueStatistics.upsert({
+        where: {
+          id: `stats-${specialty}-${today.toISOString().split('T')[0]}`,
+        },
+        update: {
+          totalInQueue,
+          totalInProgress,
+          totalFinished,
+          averageWaitTime,
+          averageDuration,
+        },
+        create: {
+          id: `stats-${specialty}-${today.toISOString().split('T')[0]}`,
+          specialty,
+          date: today,
+          totalInQueue,
+          totalInProgress,
+          totalFinished,
+          averageWaitTime,
+          averageDuration,
+        },
+      });
+
+      this.logger.log(`Updated queue statistics for ${specialty}`);
+    } catch (error) {
+      this.logger.error('Error updating queue statistics:', error);
+    }
+  }
+
+  async getQueueStatistics(specialty: Specialty, date?: Date) {
+    const targetDate = date || new Date();
+    targetDate.setHours(0, 0, 0, 0);
+
+    return this.prismaService.queueStatistics.findFirst({
+      where: {
+        specialty,
+        date: targetDate,
+      },
+    });
+  }
+
+  async getAllQueueStatistics(date?: Date) {
+    const targetDate = date || new Date();
+    targetDate.setHours(0, 0, 0, 0);
+
+    return this.prismaService.queueStatistics.findMany({
+      where: {
+        date: targetDate,
+      },
+      orderBy: {
+        specialty: 'asc',
+      },
+    });
+  }
+
+  private async getCachedWaitTime(specialty: Specialty): Promise<number | null> {
+    try {
+      const cached = await this.redisService.get(`wait_time:${specialty}`);
+      return cached ? parseInt(cached) : null;
+    } catch (error) {
+      this.logger.warn('Error getting cached wait time:', error);
+      return null;
+    }
+  }
+
+  private async cacheWaitTime(specialty: Specialty, waitTime: number): Promise<void> {
+    try {
+      await this.redisService.set(`wait_time:${specialty}`, waitTime.toString(), 300); // 5 minutes
+    } catch (error) {
+      this.logger.warn('Error caching wait time:', error);
+    }
+  }
+
+  private getRoleForSpecialty(specialty: Specialty): string {
+    const roleMapping = {
+      [Specialty.psicologo]: 'psicologo',
+      [Specialty.dentista]: 'dentista',
+      [Specialty.medico_clinico]: 'medico',
+    };
+
+    return roleMapping[specialty];
+  }
+
+  async getWaitTimesForSpecialties(specialtyList: Specialty[]) {
+    const waitTimes = await Promise.all(
+      specialtyList.map(specialty => this.calculateWaitTime(specialty))
+    );
+
+    return specialtyList.map((specialty, index) => ({
+      specialty,
+      estimatedWaitTime: waitTimes[index],
+    }));
+  }
+
+  async getConsultationWaitTime(consultationId: string) {
     const consultation = await this.prismaService.consultation.findUnique({
       where: { id: consultationId },
     });
@@ -359,75 +256,40 @@ export class WaitTimeService {
       throw new Error('Consultation not found');
     }
 
-    const position = await this.prismaService.consultation.count({
-      where: {
-        specialty: specialty as any,
-        status: 'em_fila',
-        createdAt: {
-          lte: consultation.createdAt,
-        },
-      },
-    });
-
-    return position;
-  }
-
-  /**
-   * Update queue statistics in the database
-   */
-  private async updateQueueStatistics(specialty: Specialty): Promise<void> {
-    const stats = await this.getQueueStatistics(specialty);
+    const estimatedWaitTime = await this.calculateWaitTime(consultation.specialty as Specialty);
     
-    await this.prismaService.queueStatistics.upsert({
+    return {
+      consultationId,
+      specialty: consultation.specialty,
+      position: consultation.position,
+      estimatedWaitTime,
+    };
+  }
+
+  async getHistoricalData(specialty: Specialty, daysCount: number) {
+    const endDate = new Date();
+    const startDate = new Date(endDate.getTime() - daysCount * 24 * 60 * 60 * 1000);
+
+    const statistics = await this.prismaService.queueStatistics.findMany({
       where: {
-        specialty_date: {
-          specialty: specialty as any,
-          date: new Date(),
+        specialty,
+        date: {
+          gte: startDate,
+          lte: endDate,
         },
       },
-      update: {
-        totalInQueue: stats.queueLength,
-        totalInProgress: stats.inProgress,
-        totalFinished: stats.completedToday,
-        averageWaitTime: stats.queueLength > 0 ? 
-          Math.round((stats.queueLength * this.DEFAULT_DURATIONS[specialty]) / Math.max(stats.onlineProfessionals, 1)) : 0,
-        doctorsOnline: stats.onlineProfessionals,
-      },
-      create: {
-        id: this.generateUUID(),
-        specialty: specialty as any,
-        date: new Date(),
-        totalInQueue: stats.queueLength,
-        totalInProgress: stats.inProgress,
-        totalFinished: stats.completedToday,
-        averageWaitTime: stats.queueLength > 0 ? 
-          Math.round((stats.queueLength * this.DEFAULT_DURATIONS[specialty]) / Math.max(stats.onlineProfessionals, 1)) : 0,
-        doctorsOnline: stats.onlineProfessionals,
-        averageDuration: this.DEFAULT_DURATIONS[specialty],
+      orderBy: {
+        date: 'asc',
       },
     });
-  }
 
-  /**
-   * Get role for specialty
-   */
-  private getRoleForSpecialty(specialty: Specialty): string {
-    const mapping = {
-      [Specialty.psicologo]: 'psicologo',
-      [Specialty.dentista]: 'dentista',
-      [Specialty.medico_clinico]: 'medico',
-    };
-    return mapping[specialty] || specialty;
-  }
-
-  /**
-   * Generate UUID
-   */
-  private generateUUID(): string {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-      const r = Math.random() * 16 | 0;
-      const v = c === 'x' ? r : (r & 0x3 | 0x8);
-      return v.toString(16);
-    });
+    return statistics.map(stat => ({
+      date: stat.date,
+      totalInQueue: stat.totalInQueue,
+      totalInProgress: stat.totalInProgress,
+      totalFinished: stat.totalFinished,
+      averageWaitTime: stat.averageWaitTime,
+      averageDuration: stat.averageDuration,
+    }));
   }
 }

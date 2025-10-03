@@ -11,7 +11,7 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
-import { UsersService } from '../../application/services/users.service';
+import { UsersService } from '@/application/services/users.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '@/shared/decorators/roles.decorator';
 import { CurrentUser } from '@/shared/decorators/current-user.decorator';
@@ -38,7 +38,7 @@ export class UsersController {
     @Query('role') role?: UserRole,
     @Query('search') search?: string,
   ) {
-    return this.usersService.findAll({ page, limit, role, search });
+    return this.usersService.findAll();
   }
 
   @Get('profile')
@@ -90,6 +90,6 @@ export class UsersController {
   @ApiOperation({ summary: 'Activate/deactivate user (Admin only)' })
   @ApiResponse({ status: 200, description: 'User status updated successfully' })
   async toggleActive(@Param('id') id: string, @Body('isActive') isActive: boolean) {
-    return this.usersService.toggleActive(id, isActive);
+    return this.usersService.toggleActive(id);
   }
 }
