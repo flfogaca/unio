@@ -6,7 +6,7 @@ import { useAuthStore } from '@/stores/auth'
 export function LoginForm() {
   const { login, isLoading, error, clearError } = useAuthStore()
   const [credentials, setCredentials] = useState({
-    cpf: '',
+    email: '',
     password: ''
   })
 
@@ -39,16 +39,16 @@ export function LoginForm() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="cpf" className="block text-sm font-medium text-gray-700">
-                CPF
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                Email
               </label>
               <input
-                type="text"
-                id="cpf"
-                name="cpf"
-                value={credentials.cpf}
+                type="email"
+                id="email"
+                name="email"
+                value={credentials.email || ''}
                 onChange={handleChange}
-                placeholder="000.000.000-00"
+                placeholder="seu@email.com"
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
                 required
               />
@@ -62,7 +62,7 @@ export function LoginForm() {
                 type="password"
                 id="password"
                 name="password"
-                value={credentials.password}
+                value={credentials.password || ''}
                 onChange={handleChange}
                 placeholder="Digite sua senha"
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
@@ -90,9 +90,11 @@ export function LoginForm() {
               Usuários de teste:
             </p>
             <div className="mt-2 text-xs text-gray-500 space-y-1">
-              <p><strong>Paciente:</strong> CPF: 123.456.789-00 | Senha: 123456</p>
-              <p><strong>Dentista:</strong> CPF: 987.654.321-00 | Senha: 123456</p>
-              <p><strong>Admin:</strong> CPF: 111.222.333-44 | Senha: 123456</p>
+              <p><strong>Admin:</strong> admin@unio.com | Senha: 123456</p>
+              <p><strong>Paciente:</strong> paciente1@unio.com | Senha: 123456</p>
+              <p><strong>Dentista:</strong> dentista1@unio.com | Senha: 123456</p>
+              <p><strong>Psicólogo:</strong> psicologo1@unio.com | Senha: 123456</p>
+              <p><strong>Médico:</strong> medico1@unio.com | Senha: 123456</p>
             </div>
           </div>
         </CardContent>

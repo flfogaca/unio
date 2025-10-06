@@ -51,7 +51,7 @@ class ApiClient {
   }
 
   // Auth endpoints
-  async login(credentials: { cpf: string; password: string }) {
+  async login(credentials: { email: string; password: string }) {
     return this.request('/simple-auth/login', {
       method: 'POST',
       body: JSON.stringify(credentials),

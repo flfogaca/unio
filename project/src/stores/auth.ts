@@ -22,7 +22,7 @@ interface AuthState {
   isAuthenticated: boolean
   isLoading: boolean
   error: string | null
-  login: (credentials: { cpf: string; password: string }) => Promise<void>
+  login: (credentials: { email: string; password: string }) => Promise<void>
   logout: () => Promise<void>
   updateUser: (updates: Partial<User>) => void
   checkAuth: () => Promise<void>

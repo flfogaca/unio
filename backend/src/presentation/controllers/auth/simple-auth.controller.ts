@@ -15,10 +15,10 @@ export class SimpleAuthController {
 
   @Public()
   @Post('login')
-  async login(@Body() body: { cpf: string; password: string }) {
+  async login(@Body() body: { email: string; password: string }) {
     try {
       const user = await this.prismaService.user.findUnique({
-        where: { cpf: body.cpf },
+        where: { email: body.email },
       });
 
       if (!user) {
