@@ -1,0 +1,205 @@
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
+
+interface ApiResponse<T = any> {
+  success: boolean;
+  data: T;
+  message?: string;
+  error?: string;
+}
+
+class ApiClient {
+  private baseURL: string;
+  private token: string | null = null;
+
+  constructor(baseURL: string) {
+    this.baseURL = baseURL;
+    this.token = localStorage.getItem('token');
+  }
+
+  private async request<T>(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<ApiResponse<T>> {
+    const url = `${this.baseURL}${endpoint}`;
+    
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    };
+
+    if (this.token) {
+      headers.Authorization = `Bearer ${this.token}`;
+    }
+
+    try {
+      const response = await fetch(url, {
+        ...options,
+        headers,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || `HTTP error! status: ${response.status}`);
+      }
+
+      return data;
+    } catch (error) {
+      console.error('API request failed:', error);
+      throw error;
+    }
+  }
+
+  // Auth endpoints
+  async login(credentials: { cpf: string; password: string }) {
+    return this.request('/simple-auth/login', {
+      method: 'POST',
+      body: JSON.stringify(credentials),
+    });
+  }
+
+  async register(userData: any) {
+    return this.request('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    });
+  }
+
+  async getProfile() {
+    return this.request('/simple-auth/profile');
+  }
+
+  async logout() {
+    return this.request('/auth/logout', {
+      method: 'POST',
+    });
+  }
+
+  // Consultations endpoints
+  async getConsultations() {
+    return this.request('/consultations');
+  }
+
+  async createConsultation(consultationData: any) {
+    return this.request('/consultations', {
+      method: 'POST',
+      body: JSON.stringify(consultationData),
+    });
+  }
+
+  async getConsultation(id: string) {
+    return this.request(`/consultations/${id}`);
+  }
+
+  async updateConsultation(id: string, data: any) {
+    return this.request(`/consultations/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // Availability endpoints
+  async getSpecialtyAvailability(specialty: string) {
+    return this.request(`/availability/specialty/${specialty}`);
+  }
+
+  async getAllSpecialtiesAvailability() {
+    return this.request('/availability/specialties');
+  }
+
+  async getProfessionalAvailability() {
+    return this.request('/availability/professional');
+  }
+
+  async updateProfessionalAvailability(data: any) {
+    return this.request('/availability/professional', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // Wait time endpoints
+  async getSpecialtyWaitTime(specialty: string) {
+    return this.request(`/wait-time/specialty/${specialty}`);
+  }
+
+  async getSpecialtiesWaitTimes(specialties: string[]) {
+    const specialtiesParam = specialties.join(',');
+    return this.request(`/wait-time/specialties?specialties=${specialtiesParam}`);
+  }
+
+  async getConsultationWaitTime(consultationId: string) {
+    return this.request(`/wait-time/consultation/${consultationId}`);
+  }
+
+  async getQueueStatistics(specialty: string) {
+    return this.request(`/wait-time/statistics/${specialty}`);
+  }
+
+  // Users endpoints
+  async getUsers() {
+    return this.request('/users');
+  }
+
+  async getUser(id: string) {
+    return this.request(`/users/${id}`);
+  }
+
+  async updateUser(id: string, data: any) {
+    return this.request(`/users/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // Medical records endpoints
+  async getMedicalRecords() {
+    return this.request('/medical-records');
+  }
+
+  async createMedicalRecord(data: any) {
+    return this.request('/medical-records', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getMedicalRecord(id: string) {
+    return this.request(`/medical-records/${id}`);
+  }
+
+  // Specialties endpoints
+  async getSpecialties() {
+    return this.request('/specialties');
+  }
+
+  // Video endpoints
+  async createVideoRoom(consultationId: string) {
+    return this.request('/video/room', {
+      method: 'POST',
+      body: JSON.stringify({ consultationId }),
+    });
+  }
+
+  async getVideoRoom(roomId: string) {
+    return this.request(`/video/room/${roomId}`);
+  }
+
+  // Utility methods
+  setToken(token: string) {
+    this.token = token;
+    localStorage.setItem('token', token);
+  }
+
+  clearToken() {
+    this.token = null;
+    localStorage.removeItem('token');
+  }
+
+  isAuthenticated(): boolean {
+    return !!this.token;
+  }
+}
+
+export const apiClient = new ApiClient(API_BASE_URL);
+export default apiClient;

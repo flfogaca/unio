@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Header } from './components/layout/Header'
 import { Sidebar } from './components/layout/Sidebar'
+import { LoginForm } from './components/LoginForm'
 import { SpecialtiesDashboard } from './components/SpecialtiesDashboard'
 import { SolicitarAtendimento } from './components/SolicitarAtendimento'
 import { PacienteDashboard } from './components/paciente/Dashboard'
@@ -15,11 +16,18 @@ import { GerenciarUsuarios } from './components/admin/GerenciarUsuarios'
 import { ConfigurarFila } from './components/admin/ConfigurarFila'
 import { Financeiro } from './components/admin/Financeiro'
 import { Relatorios } from './components/admin/Relatorios'
+import { useAuthStore } from './stores/auth'
 import './index.css'
 
 function App() {
   const [currentPath, setCurrentPath] = useState('/')
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const { isAuthenticated, isLoading, checkAuth, user } = useAuthStore()
+
+  // Check authentication on app load
+  useEffect(() => {
+    checkAuth()
+  }, [checkAuth])
 
   // Simple router based on hash
   useEffect(() => {
@@ -41,6 +49,23 @@ function App() {
   const handleSelectSpecialty = (specialtyId: string) => {
     // Navigate to specialty-specific page
     setCurrentPath(`/solicitar-atendimento/${specialtyId}`)
+  }
+
+  // Show loading screen while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-grayBg">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Carregando...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show login form if not authenticated
+  if (!isAuthenticated) {
+    return <LoginForm />
   }
 
   const renderContent = () => {
@@ -100,9 +125,7 @@ function App() {
   }
 
   const getUserRole = () => {
-    if (currentPath.startsWith('/admin')) return 'admin'
-    if (currentPath.startsWith('/dentista')) return 'dentista'
-    return 'paciente'
+    return user?.role || 'paciente'
   }
 
   return (

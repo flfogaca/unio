@@ -1,5 +1,5 @@
 import React from 'react';
-import { Brain, Tooth, Stethoscope, Clock, Users, AlertCircle } from 'lucide-react';
+import { Brain, Smile, Stethoscope, Clock, Users, AlertCircle } from 'lucide-react';
 import { Card } from './ui/Card';
 import { StatusBadge } from './ui/StatusBadge';
 
@@ -21,7 +21,7 @@ interface SpecialtyCardProps {
 
 const iconMap = {
   brain: Brain,
-  tooth: Tooth,
+  tooth: Smile,
   stethoscope: Stethoscope,
 };
 

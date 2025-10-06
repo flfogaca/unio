@@ -15,7 +15,7 @@ import {
 interface SidebarProps {
   isOpen: boolean
   onClose: () => void
-  userRole: 'paciente' | 'dentista' | 'admin'
+  userRole: 'paciente' | 'dentista' | 'psicologo' | 'medico' | 'admin'
   currentPath?: string
   onNavigate?: (path: string) => void
 }

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSpecialtyAccess } from '../hooks/useSpecialtyAccess';
 import { useAuthStore } from '../stores/auth';
 import { Specialty } from '@/shared/types';
-import { Brain, Tooth, Stethoscope, Users, Clock, Activity, AlertCircle } from 'lucide-react';
+import { Brain, Smile, Stethoscope, Users, Clock, Activity, AlertCircle } from 'lucide-react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { StatusBadge } from './ui/StatusBadge';
@@ -31,7 +31,7 @@ const specialtyInfo = {
   },
   [Specialty.dentista]: {
     name: 'Dentista',
-    icon: Tooth,
+    icon: Smile,
     color: '#06B6D4',
     description: 'Atendimento odontológico',
     features: ['Emergência dentária', 'Consulta odontológica', 'Prevenção'],

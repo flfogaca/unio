@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { ArrowLeft, Clock, Calendar, AlertCircle, Send, Brain, Tooth, Stethoscope, Upload } from 'lucide-react'
+import { ArrowLeft, Clock, Calendar, AlertCircle, Send, Brain, Smile, Stethoscope, Upload } from 'lucide-react'
 import { Card } from './ui/Card'
 import { Button } from './ui/Button'
 
@@ -18,7 +18,7 @@ const specialtyInfo = {
   },
   'dentista': {
     name: 'Dentista',
-    icon: Tooth,
+    icon: Smile,
     color: '#06B6D4',
     description: 'Atendimento odontológico',
     features: ['Emergência dentária', 'Consulta odontológica', 'Prevenção'],

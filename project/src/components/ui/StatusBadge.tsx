@@ -21,7 +21,7 @@ const statusConfig = {
 }
 
 export function StatusBadge({ status, className }: StatusBadgeProps) {
-  const config = statusConfig[status]
+  const config = statusConfig[status] || statusConfig['em-fila'] // Fallback para 'em-fila'
   
   return (
     <span 

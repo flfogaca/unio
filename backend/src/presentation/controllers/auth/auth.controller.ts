@@ -8,6 +8,7 @@ import {
   HttpCode,
   HttpStatus,
   ValidationPipe,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from '@/application/services/auth.service';
@@ -26,15 +27,35 @@ export class AuthController {
   @Post('login')
   @Public()
   @HttpCode(HttpStatus.OK)
-  @UseGuards(LocalAuthGuard)
   @ApiOperation({ summary: 'User login with CPF and password' })
   @ApiResponse({ status: 200, description: 'Login successful' })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
-  async login(
-    @Body(ValidationPipe) loginDto: LoginDto,
-    @Request() req: any,
-  ) {
-    return this.authService.login(req.user);
+  async login(@Body(ValidationPipe) loginDto: LoginDto) {
+    try {
+      const user = await this.authService.validateUser(loginDto.cpf, loginDto.password);
+      if (!user) {
+        throw new UnauthorizedException('Credenciais inválidas');
+      }
+
+      const payload = { email: user.email, sub: user.id, role: user.role };
+      const token = this.authService['jwtService'].sign(payload);
+      
+      return {
+        success: true,
+        data: {
+          access_token: token,
+          user: {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+            cpf: user.cpf,
+          },
+        },
+      };
+    } catch (error) {
+      throw new UnauthorizedException('Credenciais inválidas');
+    }
   }
 
   @Post('register')
@@ -78,21 +99,33 @@ export class AuthController {
     return this.authService.getProfile(user.id);
   }
 
-  @Get('verify-token')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Verify if token is valid' })
-  @ApiResponse({ status: 200, description: 'Token is valid' })
-  @ApiResponse({ status: 401, description: 'Token is invalid' })
-  async verifyToken(@CurrentUser() user: any) {
-    return {
-      valid: true,
-      user: {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-      },
-    };
+  @Post('test-login')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  async testLogin(@Body() body: { cpf: string; password: string }) {
+    try {
+      const user = await this.authService.validateUser(body.cpf, body.password);
+      if (!user) {
+        return { error: 'Invalid credentials', success: false };
+      }
+      
+      const payload = { email: user.email, sub: user.id, role: user.role };
+      const token = this.authService['jwtService'].sign(payload);
+      
+      return {
+        success: true,
+        access_token: token,
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+          cpf: user.cpf,
+        },
+      };
+    } catch (error) {
+      return { error: error.message, success: false };
+    }
   }
 }
 

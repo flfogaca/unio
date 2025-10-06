@@ -12,9 +12,9 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
-  async validateUser(email: string, password: string): Promise<any> {
+  async validateUser(cpf: string, password: string): Promise<any> {
     const user = await this.prismaService.user.findUnique({
-      where: { email },
+      where: { cpf },
     });
 
     if (user && await bcrypt.compare(password, user.password)) {
@@ -25,7 +25,7 @@ export class AuthService {
   }
 
   async login(loginDto: LoginDto) {
-    const user = await this.validateUser(loginDto.email, loginDto.password);
+    const user = await this.validateUser(loginDto.cpf, loginDto.password);
     if (!user) {
       throw new UnauthorizedException('Credenciais inválidas');
     }
@@ -38,6 +38,7 @@ export class AuthService {
         email: user.email,
         name: user.name,
         role: user.role,
+        cpf: user.cpf,
       },
     };
   }
