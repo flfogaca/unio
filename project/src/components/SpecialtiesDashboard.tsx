@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Clock, Users, Activity, RefreshCw } from 'lucide-react';
 import { SpecialtyCard } from './SpecialtyCard';
 import { Card } from './ui/Card';
+import apiClient from '@/lib/api';
 
 interface Specialty {
   id: string;
@@ -25,8 +26,8 @@ export const SpecialtiesDashboard: React.FC<SpecialtiesDashboardProps> = ({ onSe
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
-  // Mock data for development
-  const mockSpecialties: Specialty[] = [
+  // Especialidades disponíveis no sistema
+  const defaultSpecialties: Specialty[] = [
     {
       id: 'psicologo',
       name: 'Psicólogo',
@@ -39,10 +40,10 @@ export const SpecialtiesDashboard: React.FC<SpecialtiesDashboardProps> = ({ onSe
         'Acompanhamento psicológico',
         'Suporte em crises',
       ],
-      queueLength: 2,
-      inProgress: 1,
-      onlineProfessionals: 3,
-      estimatedWaitTime: 15,
+      queueLength: 0,
+      inProgress: 0,
+      onlineProfessionals: 0,
+      estimatedWaitTime: 0,
     },
     {
       id: 'dentista',
@@ -56,10 +57,10 @@ export const SpecialtiesDashboard: React.FC<SpecialtiesDashboardProps> = ({ onSe
         'Prevenção e higiene',
         'Tratamentos especializados',
       ],
-      queueLength: 1,
-      inProgress: 2,
-      onlineProfessionals: 2,
-      estimatedWaitTime: 8,
+      queueLength: 0,
+      inProgress: 0,
+      onlineProfessionals: 0,
+      estimatedWaitTime: 0,
     },
     {
       id: 'medico-clinico',
@@ -74,8 +75,8 @@ export const SpecialtiesDashboard: React.FC<SpecialtiesDashboardProps> = ({ onSe
         'Encaminhamentos',
       ],
       queueLength: 0,
-      inProgress: 1,
-      onlineProfessionals: 4,
+      inProgress: 0,
+      onlineProfessionals: 0,
       estimatedWaitTime: 0,
     },
   ];
@@ -84,18 +85,27 @@ export const SpecialtiesDashboard: React.FC<SpecialtiesDashboardProps> = ({ onSe
     try {
       setLoading(true);
       
-      // TODO: Replace with actual API call
-      // const response = await fetch('/api/v1/specialties');
-      // const data = await response.json();
-      // setSpecialties(data);
-      
-      // Using mock data for now
-      setSpecialties(mockSpecialties);
+      // Busca dados reais da API
+      const response = await apiClient.getAllSpecialtiesAvailability();
+      if (response.success) {
+        // Combina dados da API com configurações padrão
+        const apiSpecialties = response.data.map((apiSpecialty: any) => ({
+          ...defaultSpecialties.find(s => s.id === apiSpecialty.specialty),
+          queueLength: apiSpecialty.totalInQueue || 0,
+          inProgress: apiSpecialty.totalInProgress || 0,
+          onlineProfessionals: apiSpecialty.onlineProfessionals || 0,
+          estimatedWaitTime: apiSpecialty.estimatedWaitTime || 0,
+        }));
+        setSpecialties(apiSpecialties);
+      } else {
+        // Fallback para dados padrão
+        setSpecialties(defaultSpecialties);
+      }
       setLastUpdated(new Date());
     } catch (error) {
       console.error('Erro ao carregar especialidades:', error);
-      // Fallback to mock data
-      setSpecialties(mockSpecialties);
+      // Fallback para dados padrão
+      setSpecialties(defaultSpecialties);
     } finally {
       setLoading(false);
     }

@@ -6,15 +6,20 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Starting database seed...');
 
-  // Create admin user
-  const adminPassword = await bcrypt.hash('admin123', 10);
-  const admin = await prisma.user.upsert({
-    where: { email: 'admin@unio.com' },
-    update: {},
-    create: {
-      cpf: '12345678901',
+  // Limpar dados existentes
+  await prisma.consultation.deleteMany();
+  await prisma.queueStatistics.deleteMany();
+  await prisma.systemConfig.deleteMany();
+  await prisma.user.deleteMany();
+
+  const password = await bcrypt.hash('123456', 10);
+
+  // 1. Criar Admin
+  const admin = await prisma.user.create({
+    data: {
+      cpf: '00000000000',
       email: 'admin@unio.com',
-      password: adminPassword,
+      password,
       name: 'Administrador UNIO',
       role: UserRole.admin,
       phone: '(11) 99999-9999',
@@ -23,138 +28,174 @@ async function main() {
     },
   });
 
-  // Create sample dentist
-  const dentistPassword = await bcrypt.hash('dentist123', 10);
-  const dentist = await prisma.user.upsert({
-    where: { email: 'dentist@unio.com' },
-    update: {},
-    create: {
-      cpf: '12345678902',
-      email: 'dentist@unio.com',
-      password: dentistPassword,
+  // 2. Criar 2 Dentistas
+  const dentists = [
+    {
+      cpf: '11111111111',
+      email: 'dentista1@unio.com',
       name: 'Dr. João Silva',
-      role: UserRole.dentista,
-      phone: '(11) 99999-9998',
+      phone: '(11) 99999-0001',
       cro: 'CRO-SP 12345',
-      specialties: [Specialty.dentista],
-      isActive: true,
-      isOnline: true,
     },
-  });
-
-  // Create sample psychologist
-  const psychologistPassword = await bcrypt.hash('psychologist123', 10);
-  const psychologist = await prisma.user.upsert({
-    where: { email: 'psychologist@unio.com' },
-    update: {},
-    create: {
-      cpf: '12345678903',
-      email: 'psychologist@unio.com',
-      password: psychologistPassword,
+    {
+      cpf: '11111111112',
+      email: 'dentista2@unio.com',
       name: 'Dra. Maria Santos',
-      role: UserRole.psicologo,
-      phone: '(11) 99999-9997',
-      specialties: [Specialty.psicologo],
-      isActive: true,
-      isOnline: true,
+      phone: '(11) 99999-0002',
+      cro: 'CRO-SP 12346',
     },
-  });
+  ];
 
-  // Create sample medical doctor
-  const medicalPassword = await bcrypt.hash('medical123', 10);
-  const medicalDoctor = await prisma.user.upsert({
-    where: { email: 'medical@unio.com' },
-    update: {},
-    create: {
-      cpf: '12345678904',
-      email: 'medical@unio.com',
-      password: medicalPassword,
+  for (const dentistData of dentists) {
+    await prisma.user.create({
+      data: {
+        ...dentistData,
+        password,
+        role: UserRole.dentista,
+        specialties: [Specialty.dentista],
+        isActive: true,
+        isOnline: true,
+      },
+    });
+  }
+
+  // 3. Criar 2 Psicólogos
+  const psychologists = [
+    {
+      cpf: '22222222221',
+      email: 'psicologo1@unio.com',
+      name: 'Dra. Ana Costa',
+      phone: '(11) 99999-0003',
+    },
+    {
+      cpf: '22222222222',
+      email: 'psicologo2@unio.com',
+      name: 'Dr. Pedro Mendes',
+      phone: '(11) 99999-0004',
+    },
+  ];
+
+  for (const psychologistData of psychologists) {
+    await prisma.user.create({
+      data: {
+        ...psychologistData,
+        password,
+        role: UserRole.psicologo,
+        specialties: [Specialty.psicologo],
+        isActive: true,
+        isOnline: true,
+      },
+    });
+  }
+
+  // 4. Criar 2 Médicos Clínicos
+  const medicalDoctors = [
+    {
+      cpf: '33333333331',
+      email: 'medico1@unio.com',
       name: 'Dr. Carlos Oliveira',
-      role: UserRole.medico,
-      phone: '(11) 99999-9996',
-      specialties: [Specialty.medico_clinico],
-      isActive: true,
-      isOnline: true,
+      phone: '(11) 99999-0005',
     },
-  });
+    {
+      cpf: '33333333332',
+      email: 'medico2@unio.com',
+      name: 'Dra. Julia Ferreira',
+      phone: '(11) 99999-0006',
+    },
+  ];
 
-  // Create sample patients
-  const patient1Password = await bcrypt.hash('patient123', 10);
-  const patient1 = await prisma.user.upsert({
-    where: { email: 'patient1@unio.com' },
-    update: {},
-    create: {
-      cpf: '12345678905',
-      email: 'patient1@unio.com',
-      password: patient1Password,
-      name: 'Ana Costa',
-      role: UserRole.paciente,
-      phone: '(11) 99999-9995',
+  for (const doctorData of medicalDoctors) {
+    await prisma.user.create({
+      data: {
+        ...doctorData,
+        password,
+        role: UserRole.medico,
+        specialties: [Specialty.medico_clinico],
+        isActive: true,
+        isOnline: true,
+      },
+    });
+  }
+
+  // 5. Criar 9 Pacientes
+  const patients = [
+    {
+      cpf: '44444444441',
+      email: 'paciente1@unio.com',
+      name: 'Ana Beatriz Silva',
+      phone: '(11) 99999-0007',
       birthDate: new Date('1990-05-15'),
-      isActive: true,
     },
-  });
-
-  const patient2Password = await bcrypt.hash('patient123', 10);
-  const patient2 = await prisma.user.upsert({
-    where: { email: 'patient2@unio.com' },
-    update: {},
-    create: {
-      cpf: '12345678906',
-      email: 'patient2@unio.com',
-      password: patient2Password,
-      name: 'Pedro Mendes',
-      role: UserRole.paciente,
-      phone: '(11) 99999-9994',
+    {
+      cpf: '44444444442',
+      email: 'paciente2@unio.com',
+      name: 'Bruno Costa',
+      phone: '(11) 99999-0008',
       birthDate: new Date('1985-08-22'),
-      isActive: true,
     },
-  });
-
-  const patient3Password = await bcrypt.hash('patient123', 10);
-  const patient3 = await prisma.user.upsert({
-    where: { email: 'patient3@unio.com' },
-    update: {},
-    create: {
-      cpf: '12345678907',
-      email: 'patient3@unio.com',
-      password: patient3Password,
-      name: 'Julia Ferreira',
-      role: UserRole.paciente,
-      phone: '(11) 99999-9993',
+    {
+      cpf: '44444444443',
+      email: 'paciente3@unio.com',
+      name: 'Carla Mendes',
+      phone: '(11) 99999-0009',
       birthDate: new Date('1992-03-10'),
-      isActive: true,
     },
-  });
-
-  // Create sample consultations
-  const consultation1 = await prisma.consultation.create({
-    data: {
-      patientId: patient1.id,
-      specialty: Specialty.dentista,
-      description: 'Dor no dente molar direito, sensibilidade ao frio',
-      status: ConsultationStatus.em_fila,
-      priority: ConsultationPriority.alta,
-      position: 1,
-      estimatedWaitTime: 5,
-      attachments: [],
+    {
+      cpf: '44444444444',
+      email: 'paciente4@unio.com',
+      name: 'Diego Oliveira',
+      phone: '(11) 99999-0010',
+      birthDate: new Date('1988-12-05'),
     },
-  });
-
-  const consultation2 = await prisma.consultation.create({
-    data: {
-      patientId: patient2.id,
-      specialty: Specialty.psicologo,
-      description: 'Crise de ansiedade, precisa de atendimento urgente',
-      status: ConsultationStatus.em_fila,
-      priority: ConsultationPriority.urgente,
-      position: 1,
-      estimatedWaitTime: 0,
-      attachments: [],
+    {
+      cpf: '44444444445',
+      email: 'paciente5@unio.com',
+      name: 'Elena Ferreira',
+      phone: '(11) 99999-0011',
+      birthDate: new Date('1995-07-18'),
     },
-  });
+    {
+      cpf: '44444444446',
+      email: 'paciente6@unio.com',
+      name: 'Fernando Santos',
+      phone: '(11) 99999-0012',
+      birthDate: new Date('1987-11-30'),
+    },
+    {
+      cpf: '44444444447',
+      email: 'paciente7@unio.com',
+      name: 'Gabriela Lima',
+      phone: '(11) 99999-0013',
+      birthDate: new Date('1993-04-25'),
+    },
+    {
+      cpf: '44444444448',
+      email: 'paciente8@unio.com',
+      name: 'Henrique Alves',
+      phone: '(11) 99999-0014',
+      birthDate: new Date('1989-09-12'),
+    },
+    {
+      cpf: '44444444449',
+      email: 'paciente9@unio.com',
+      name: 'Isabela Rocha',
+      phone: '(11) 99999-0015',
+      birthDate: new Date('1991-01-08'),
+    },
+  ];
 
-  // Create system configurations
+  for (const patientData of patients) {
+    await prisma.user.create({
+      data: {
+        ...patientData,
+        password,
+        role: UserRole.paciente,
+        isActive: true,
+      },
+    });
+  }
+
+  // 6. Criar configurações do sistema
   const systemConfigs = [
     {
       key: 'max_queue_size',
@@ -189,14 +230,12 @@ async function main() {
   ];
 
   for (const config of systemConfigs) {
-    await prisma.systemConfig.upsert({
-      where: { key: config.key },
-      update: {},
-      create: config,
+    await prisma.systemConfig.create({
+      data: config,
     });
   }
 
-  // Create queue statistics for today
+  // 7. Criar estatísticas de fila para hoje
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -204,16 +243,16 @@ async function main() {
     {
       specialty: Specialty.dentista,
       date: today,
-      totalInQueue: 1,
+      totalInQueue: 0,
       totalInProgress: 0,
       totalFinished: 0,
-      averageWaitTime: 5,
+      averageWaitTime: 0,
       averageDuration: 0,
     },
     {
       specialty: Specialty.psicologo,
       date: today,
-      totalInQueue: 1,
+      totalInQueue: 0,
       totalInProgress: 0,
       totalFinished: 0,
       averageWaitTime: 0,
@@ -238,16 +277,15 @@ async function main() {
 
   console.log('✅ Database seed completed successfully!');
   console.log('\n📋 Created users:');
-  console.log(`- Admin: ${admin.email} (password: admin123)`);
-  console.log(`- Dentist: ${dentist.email} (password: dentist123)`);
-  console.log(`- Psychologist: ${psychologist.email} (password: psychologist123)`);
-  console.log(`- Medical Doctor: ${medicalDoctor.email} (password: medical123)`);
-  console.log(`- Patient 1: ${patient1.email} (password: patient123)`);
-  console.log(`- Patient 2: ${patient2.email} (password: patient123)`);
-  console.log(`- Patient 3: ${patient3.email} (password: patient123)`);
-  console.log('\n📋 Created consultations:');
-  console.log(`- Consultation 1: ${consultation1.id} (Dentist - High Priority)`);
-  console.log(`- Consultation 2: ${consultation2.id} (Psychologist - Urgent)`);
+  console.log(`- Admin: ${admin.email} (password: 123456)`);
+  console.log(`- 2 Dentistas: dentista1@unio.com, dentista2@unio.com (password: 123456)`);
+  console.log(`- 2 Psicólogos: psicologo1@unio.com, psicologo2@unio.com (password: 123456)`);
+  console.log(`- 2 Médicos Clínicos: medico1@unio.com, medico2@unio.com (password: 123456)`);
+  console.log(`- 9 Pacientes: paciente1@unio.com até paciente9@unio.com (password: 123456)`);
+  console.log('\n🏥 Specialties available:');
+  console.log('- Dentista');
+  console.log('- Psicólogo');
+  console.log('- Médico Clínico');
 }
 
 main()
@@ -258,4 +296,3 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
-
