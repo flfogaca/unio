@@ -101,7 +101,12 @@ export class ConsultationsService {
 
   async create(createConsultationDto: CreateConsultationDto) {
     // Calcular tempo estimado de espera
-    const estimatedWaitTime = await this.waitTimeService.calculateWaitTime(createConsultationDto.specialty);
+    let estimatedWaitTime = 15; // Valor padrão
+    try {
+      estimatedWaitTime = await this.waitTimeService.calculateWaitTime(createConsultationDto.specialty);
+    } catch (error) {
+      console.log('Error calculating wait time, using default:', error);
+    }
     
     const consultation = await this.prismaService.consultation.create({
       data: {
