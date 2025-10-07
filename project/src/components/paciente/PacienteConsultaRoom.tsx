@@ -135,6 +135,13 @@ export function PacienteConsultaRoom({ consultaId }: PacienteConsultaRoomProps) 
 
   const handleEndCall = () => {
     if (window.confirm('Tem certeza que deseja sair da consulta?')) {
+      console.log('🚪 Paciente saindo da consulta:', consultaId)
+      
+      // Limpar chat do store
+      const { clearMessages } = useChatStore.getState()
+      clearMessages(consultaId)
+      console.log('🧹 Chat limpo do store')
+      
       alert('Você saiu da consulta. Aguarde o profissional finalizar.')
       window.location.hash = '/paciente'
     }

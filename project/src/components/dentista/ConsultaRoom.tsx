@@ -95,11 +95,26 @@ export function ConsultaRoom({ consultaId }: ConsultaRoomProps) {
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
   }
 
-  const handleFinalizarConsulta = () => {
+  const handleFinalizarConsulta = async () => {
     if (window.confirm('Tem certeza que deseja finalizar esta consulta?')) {
-      finalizarConsulta(consultaId)
-      alert('Consulta finalizada com sucesso!')
-      window.location.hash = '/dentista'
+      console.log('🏁 Finalizando consulta:', consultaId)
+      
+      try {
+        // Finalizar consulta no backend
+        await finalizarConsulta(consultaId)
+        console.log('✅ Consulta finalizada no backend')
+        
+        // Limpar chat do store
+        const { clearMessages } = useChatStore.getState()
+        clearMessages(consultaId)
+        console.log('🧹 Chat limpo do store')
+        
+        alert('Consulta finalizada com sucesso!')
+        window.location.hash = '/dentista'
+      } catch (error) {
+        console.error('❌ Erro ao finalizar consulta:', error)
+        alert('Erro ao finalizar consulta. Tente novamente.')
+      }
     }
   }
 

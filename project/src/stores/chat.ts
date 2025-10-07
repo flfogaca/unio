@@ -173,12 +173,24 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   clearMessages: (consultationId: string) => {
-    set(state => ({
-      messages: {
-        ...state.messages,
-        [consultationId]: []
+    console.log('🧹 Limpando chat da consulta:', consultationId)
+    set(state => {
+      const newMessages = { ...state.messages }
+      const newLastFetch = { ...state.lastFetch }
+      const newInitialized = { ...state.initialized }
+      
+      // Remover dados da consulta
+      delete newMessages[consultationId]
+      delete newLastFetch[consultationId]
+      delete newInitialized[consultationId]
+      
+      return {
+        messages: newMessages,
+        lastFetch: newLastFetch,
+        initialized: newInitialized
       }
-    }))
+    })
+    console.log('✅ Chat limpo completamente')
   },
 
   markAsInitialized: (consultationId: string) => {
