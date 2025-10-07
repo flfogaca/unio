@@ -37,9 +37,9 @@ export class ChatController {
   @Get('messages/:consultationId')
   async getMessages(
     @Param('consultationId') consultationId: string,
+    @CurrentUser() user: any,
     @Query('limit') limit?: string,
     @Query('since') since?: string,
-    @CurrentUser() user: any,
   ) {
     console.log('📥 API: Buscando mensagens para consulta:', consultationId);
     console.log('👤 API: Usuário:', user.id, user.name);
