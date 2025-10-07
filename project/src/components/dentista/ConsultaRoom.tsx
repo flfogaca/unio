@@ -4,7 +4,8 @@ import { StatusBadge } from '@/components/ui/StatusBadge'
 import { useQueueStore } from '@/stores/queue'
 import { useChatStore, initializeConsultationChat, disconnectChat } from '@/stores/chat'
 import { useAuthStore } from '@/stores/auth'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
+import { webrtcService } from '@/lib/webrtc'
 import { 
   Video, 
   VideoOff, 
@@ -71,11 +72,66 @@ export function ConsultaRoom({ consultaId }: ConsultaRoomProps) {
     
     // Cleanup ao desmontar
     return () => {
-      import('@/stores/chat').then(({ disconnectChat }) => {
-        disconnectChat(consultaId)
-      })
+      disconnectChat(consultaId)
     }
   }, [consultaId, user])
+
+  // Inicializar WebRTC (vídeo e áudio)
+  useEffect(() => {
+    const initVideo = async () => {
+      if (!user) return
+      
+      try {
+        console.log('🎥 Inicializando WebRTC...')
+        const stream = await webrtcService.initialize(consultaId, user.id)
+        
+        // Configurar vídeo local
+        if (localVideoRef) {
+          localVideoRef.srcObject = stream
+          localVideoRef.play().catch(e => console.error('Erro ao reproduzir vídeo local:', e))
+        }
+        
+        // Profissional cria offer (inicia conexão)
+        if (user.role !== 'paciente') {
+          console.log('👨‍⚕️ Profissional criando offer...')
+          // Aguardar um pouco para garantir que o paciente entrou
+          setTimeout(async () => {
+            await webrtcService.createOffer()
+          }, 2000)
+        }
+        
+        setWebrtcInitialized(true)
+        console.log('✅ WebRTC inicializado')
+      } catch (error: any) {
+        console.error('❌ Erro ao inicializar vídeo:', error)
+        alert(`Não foi possível acessar câmera/microfone: ${error.message}`)
+      }
+    }
+    
+    if (user) {
+      initVideo()
+    }
+    
+    return () => {
+      webrtcService.cleanup()
+    }
+  }, [consultaId, user, localVideoRef])
+
+  // Monitorar vídeo remoto
+  useEffect(() => {
+    if (!webrtcInitialized || !remoteVideoRef) return
+    
+    const interval = setInterval(() => {
+      const remoteStream = webrtcService.getRemoteStream()
+      if (remoteStream && remoteStream.getTracks().length > 0 && !remoteVideoRef.srcObject) {
+        console.log('📺 Conectando vídeo remoto')
+        remoteVideoRef.srcObject = remoteStream
+        remoteVideoRef.play().catch(e => console.error('Erro ao reproduzir vídeo remoto:', e))
+      }
+    }, 1000)
+    
+    return () => clearInterval(interval)
+  }, [webrtcInitialized, remoteVideoRef])
 
   useEffect(() => {
     const updated = items.find(item => item.id === consultaId)
@@ -169,17 +225,27 @@ export function ConsultaRoom({ consultaId }: ConsultaRoomProps) {
           <Card>
             <CardContent className="p-0">
               <div className="aspect-video bg-gray-900 rounded-lg relative overflow-hidden">
-                {/* Video Placeholder */}
-                <div className="absolute inset-0 bg-gradient-to-br from-primaryDark to-primary flex items-center justify-center">
-                  <div className="text-center text-white">
-                    <Video className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                    <h3 className="text-xl font-semibold mb-2">WebRTC em Desenvolvimento</h3>
-                    <p className="text-sm opacity-75">Interface de vídeo será implementada aqui</p>
+                {/* Vídeo Remoto (Paciente) */}
+                <video
+                  ref={setRemoteVideoRef}
+                  autoPlay
+                  playsInline
+                  className="w-full h-full object-cover"
+                />
+
+                {/* Fallback se não houver vídeo remoto */}
+                {!webrtcInitialized && (
+                  <div className="absolute inset-0 bg-gradient-to-br from-primaryDark to-primary flex items-center justify-center">
+                    <div className="text-center text-white">
+                      <Video className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                      <h3 className="text-xl font-semibold mb-2">Aguardando conexão...</h3>
+                      <p className="text-sm opacity-75">Iniciando chamada de vídeo</p>
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Status Overlay */}
-                <div className="absolute top-4 left-4">
+                <div className="absolute top-4 left-4 z-10">
                   <div className="bg-black/50 px-3 py-1 rounded-full flex items-center gap-2">
                     <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
                     <span className="text-white text-sm">REC {getDurationString()}</span>
@@ -187,16 +253,22 @@ export function ConsultaRoom({ consultaId }: ConsultaRoomProps) {
                 </div>
 
                 {/* Patient Info Overlay */}
-                <div className="absolute top-4 right-4 bg-black/50 px-3 py-2 rounded-lg text-white">
+                <div className="absolute top-4 right-4 z-10 bg-black/50 px-3 py-2 rounded-lg text-white">
                   <div className="text-sm">
                     <div className="font-medium">{consulta.pacienteNome}</div>
                     <div className="opacity-75">{consulta.especialidade}</div>
                   </div>
                 </div>
 
-                {/* Small self video */}
-                <div className="absolute bottom-4 right-4 w-32 h-24 bg-gray-700 rounded-lg border-2 border-white/20 flex items-center justify-center">
-                  <User className="h-8 w-8 text-white/50" />
+                {/* Vídeo Local (Preview pequeno) */}
+                <div className="absolute bottom-4 right-4 w-32 h-24 bg-gray-900 rounded-lg border-2 border-white/20 overflow-hidden z-10">
+                  <video
+                    ref={setLocalVideoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="w-full h-full object-cover transform scale-x-[-1]"
+                  />
                 </div>
               </div>
 
@@ -205,7 +277,12 @@ export function ConsultaRoom({ consultaId }: ConsultaRoomProps) {
                 <Button
                   variant={audioEnabled ? "primary" : "secondary"}
                   size="icon"
-                  onClick={() => setAudioEnabled(!audioEnabled)}
+                  onClick={() => {
+                    const newState = !audioEnabled
+                    setAudioEnabled(newState)
+                    webrtcService.toggleAudio(newState)
+                  }}
+                  title={audioEnabled ? "Desligar microfone" : "Ligar microfone"}
                 >
                   {audioEnabled ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
                 </Button>
@@ -213,17 +290,14 @@ export function ConsultaRoom({ consultaId }: ConsultaRoomProps) {
                 <Button
                   variant={videoEnabled ? "primary" : "secondary"}
                   size="icon"
-                  onClick={() => setVideoEnabled(!videoEnabled)}
+                  onClick={() => {
+                    const newState = !videoEnabled
+                    setVideoEnabled(newState)
+                    webrtcService.toggleVideo(newState)
+                  }}
+                  title={videoEnabled ? "Desligar câmera" : "Ligar câmera"}
                 >
                   {videoEnabled ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
-                </Button>
-
-                <Button variant="secondary" size="icon">
-                  <Camera className="h-4 w-4" />
-                </Button>
-
-                <Button variant="secondary" size="icon">
-                  <Share className="h-4 w-4" />
                 </Button>
 
                 <Button 

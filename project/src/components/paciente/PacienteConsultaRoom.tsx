@@ -5,6 +5,7 @@ import { useQueueStore } from '@/stores/queue'
 import { useChatStore, initializeConsultationChat, disconnectChat } from '@/stores/chat'
 import { useAuthStore } from '@/stores/auth'
 import { useState, useEffect, useMemo } from 'react'
+import { webrtcService } from '@/lib/webrtc'
 import { 
   Video, 
   VideoOff, 
@@ -44,6 +45,9 @@ export function PacienteConsultaRoom({ consultaId }: PacienteConsultaRoomProps) 
   const [startTime] = useState(new Date())
   const [currentTime, setCurrentTime] = useState(new Date())
   const [chatMessage, setChatMessage] = useState('')
+  const [localVideoRef, setLocalVideoRef] = useState<HTMLVideoElement | null>(null)
+  const [remoteVideoRef, setRemoteVideoRef] = useState<HTMLVideoElement | null>(null)
+  const [webrtcInitialized, setWebrtcInitialized] = useState(false)
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -72,6 +76,54 @@ export function PacienteConsultaRoom({ consultaId }: PacienteConsultaRoomProps) 
       disconnectChat(consultaId)
     }
   }, [consultaId, user])
+
+  // Inicializar WebRTC (vídeo e áudio)
+  useEffect(() => {
+    const initVideo = async () => {
+      if (!user) return
+      
+      try {
+        console.log('🎥 Inicializando WebRTC...')
+        const stream = await webrtcService.initialize(consultaId, user.id)
+        
+        // Configurar vídeo local
+        if (localVideoRef) {
+          localVideoRef.srcObject = stream
+          localVideoRef.play().catch(e => console.error('Erro ao reproduzir vídeo local:', e))
+        }
+        
+        setWebrtcInitialized(true)
+        console.log('✅ WebRTC inicializado (paciente aguarda offer)')
+      } catch (error: any) {
+        console.error('❌ Erro ao inicializar vídeo:', error)
+        alert(`Não foi possível acessar câmera/microfone: ${error.message}`)
+      }
+    }
+    
+    if (user) {
+      initVideo()
+    }
+    
+    return () => {
+      webrtcService.cleanup()
+    }
+  }, [consultaId, user, localVideoRef])
+
+  // Monitorar vídeo remoto
+  useEffect(() => {
+    if (!webrtcInitialized || !remoteVideoRef) return
+    
+    const interval = setInterval(() => {
+      const remoteStream = webrtcService.getRemoteStream()
+      if (remoteStream && remoteStream.getTracks().length > 0 && !remoteVideoRef.srcObject) {
+        console.log('📺 Conectando vídeo remoto')
+        remoteVideoRef.srcObject = remoteStream
+        remoteVideoRef.play().catch(e => console.error('Erro ao reproduzir vídeo remoto:', e))
+      }
+    }, 1000)
+    
+    return () => clearInterval(interval)
+  }, [webrtcInitialized, remoteVideoRef])
 
   useEffect(() => {
     const updated = items.find(item => item.id === consultaId)
