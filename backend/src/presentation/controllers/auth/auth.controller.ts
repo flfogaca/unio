@@ -27,12 +27,12 @@ export class AuthController {
   @Post('login')
   @Public()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'User login with CPF and password' })
+  @ApiOperation({ summary: 'User login with email and password' })
   @ApiResponse({ status: 200, description: 'Login successful' })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
   async login(@Body(ValidationPipe) loginDto: LoginDto) {
     try {
-      const user = await this.authService.validateUser(loginDto.cpf, loginDto.password);
+      const user = await this.authService.validateUser(loginDto.email, loginDto.password);
       if (!user) {
         throw new UnauthorizedException('Credenciais inválidas');
       }
@@ -102,9 +102,9 @@ export class AuthController {
   @Post('test-login')
   @Public()
   @HttpCode(HttpStatus.OK)
-  async testLogin(@Body() body: { cpf: string; password: string }) {
+  async testLogin(@Body() body: { email: string; password: string }) {
     try {
-      const user = await this.authService.validateUser(body.cpf, body.password);
+      const user = await this.authService.validateUser(body.email, body.password);
       if (!user) {
         return { error: 'Invalid credentials', success: false };
       }
