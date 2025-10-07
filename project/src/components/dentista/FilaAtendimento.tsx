@@ -7,10 +7,16 @@ import { Clock, User, Stethoscope, AlertTriangle, Users } from 'lucide-react'
 import { useState, useEffect } from 'react'
 
 export function FilaAtendimento() {
-  const { items, assumeConsulta } = useQueueStore()
+  const { items, fetchQueue, assumeConsulta } = useQueueStore()
   const { user } = useAuthStore()
   const [currentTime, setCurrentTime] = useState(new Date())
 
+  // Buscar dados do backend ao montar o componente
+  useEffect(() => {
+    fetchQueue()
+  }, [fetchQueue])
+
+  // Atualizar tempo periodicamente
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(new Date())
@@ -19,8 +25,20 @@ export function FilaAtendimento() {
     return () => clearInterval(interval)
   }, [])
 
+  // Mapear role para especialidade
+  const roleToSpecialtyMap: { [key: string]: string } = {
+    'dentista': 'dentista',
+    'psicologo': 'psicologo',
+    'medico': 'medico_clinico'
+  }
+
+  const especialidadeProfissional = user?.role ? roleToSpecialtyMap[user.role] : null
+
   const filaItems = items
-    .filter(item => item.status === 'em-fila')
+    .filter(item => 
+      item.status === 'em-fila' && 
+      (!especialidadeProfissional || item.especialidade === especialidadeProfissional)
+    )
     .sort((a, b) => {
       // Prioridade alta primeiro
       if (a.prioridade === 'alta' && b.prioridade !== 'alta') return -1

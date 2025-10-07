@@ -24,12 +24,18 @@ import {
 } from 'lucide-react'
 
 export function ConsultasAtivas() {
-  const { items, assumeConsulta } = useQueueStore()
+  const { items, fetchQueue, assumeConsulta } = useQueueStore()
   const { user } = useAuthStore()
   const [currentTime, setCurrentTime] = useState(new Date())
   const [showDetalhes, setShowDetalhes] = useState(false)
   const [consultaSelecionada, setConsultaSelecionada] = useState<any>(null)
 
+  // Buscar dados do backend ao montar o componente
+  useEffect(() => {
+    fetchQueue()
+  }, [fetchQueue])
+
+  // Atualizar tempo periodicamente
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(new Date())
