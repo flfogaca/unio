@@ -236,30 +236,38 @@ export function PacienteConsultaRoom({ consultaId }: PacienteConsultaRoomProps) 
             <Card>
               <CardContent className="p-0">
                 <div className="aspect-video bg-gray-900 rounded-lg relative overflow-hidden">
-                  {/* Video Placeholder */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-green-600 to-green-700 flex items-center justify-center">
-                    <div className="text-center text-white">
-                      <Video className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                      <h3 className="text-xl font-semibold mb-2">Videchamada Ativa</h3>
-                      <p className="text-sm opacity-75">Conectado com {consulta.dentistaNome || 'Profissional'}</p>
-                      <div className="mt-4 flex justify-center gap-4">
-                        <div className="text-center">
-                          <div className="w-16 h-12 bg-white/20 rounded-lg flex items-center justify-center mb-2">
-                            <User className="h-6 w-6" />
-                          </div>
-                          <p className="text-xs">Profissional</p>
-                        </div>
+                  {/* Vídeo Remoto (Profissional) */}
+                  <video
+                    ref={setRemoteVideoRef}
+                    autoPlay
+                    playsInline
+                    className="w-full h-full object-cover"
+                  />
+
+                  {/* Fallback se não houver vídeo remoto */}
+                  {!webrtcInitialized && (
+                    <div className="absolute inset-0 bg-gradient-to-br from-green-600 to-green-700 flex items-center justify-center">
+                      <div className="text-center text-white">
+                        <Video className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                        <h3 className="text-xl font-semibold mb-2">Aguardando conexão...</h3>
+                        <p className="text-sm opacity-75">Iniciando chamada de vídeo</p>
                       </div>
                     </div>
-                  </div>
+                  )}
 
-                  {/* Self Video */}
-                  <div className="absolute bottom-4 right-4 w-32 h-24 bg-gray-700 rounded-lg border-2 border-white/20 flex items-center justify-center">
-                    <User className="h-8 w-8 text-white/50" />
+                  {/* Vídeo Local (Preview pequeno) */}
+                  <div className="absolute bottom-4 right-4 w-32 h-24 bg-gray-900 rounded-lg border-2 border-white/20 overflow-hidden z-10">
+                    <video
+                      ref={setLocalVideoRef}
+                      autoPlay
+                      playsInline
+                      muted
+                      className="w-full h-full object-cover transform scale-x-[-1]"
+                    />
                   </div>
 
                   {/* Connection Status */}
-                  <div className="absolute top-4 left-4">
+                  <div className="absolute top-4 left-4 z-10">
                     <div className="bg-green-500 text-white px-3 py-1 rounded-full flex items-center gap-2">
                       <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
                       <span className="text-sm font-medium">Conectado</span>
@@ -272,8 +280,13 @@ export function PacienteConsultaRoom({ consultaId }: PacienteConsultaRoomProps) 
                   <Button
                     variant={videoEnabled ? "default" : "secondary"}
                     size="sm"
-                    onClick={() => setVideoEnabled(!videoEnabled)}
+                    onClick={() => {
+                      const newState = !videoEnabled
+                      setVideoEnabled(newState)
+                      webrtcService.toggleVideo(newState)
+                    }}
                     className="flex items-center gap-2"
+                    title={videoEnabled ? "Desligar câmera" : "Ligar câmera"}
                   >
                     {videoEnabled ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
                     {videoEnabled ? 'Vídeo' : 'Sem Vídeo'}
@@ -281,8 +294,13 @@ export function PacienteConsultaRoom({ consultaId }: PacienteConsultaRoomProps) 
                   <Button
                     variant={audioEnabled ? "default" : "secondary"}
                     size="sm"
-                    onClick={() => setAudioEnabled(!audioEnabled)}
+                    onClick={() => {
+                      const newState = !audioEnabled
+                      setAudioEnabled(newState)
+                      webrtcService.toggleAudio(newState)
+                    }}
                     className="flex items-center gap-2"
+                    title={audioEnabled ? "Desligar microfone" : "Ligar microfone"}
                   >
                     {audioEnabled ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
                     {audioEnabled ? 'Áudio' : 'Mudo'}
