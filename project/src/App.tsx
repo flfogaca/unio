@@ -7,6 +7,7 @@ import { SolicitarAtendimento } from './components/SolicitarAtendimento'
 import { PacienteDashboard } from './components/paciente/Dashboard'
 import { SolicitarAtendimento as PacienteSolicitarAtendimento } from './components/paciente/SolicitarAtendimento'
 import { HistoricoConsultas } from './components/paciente/HistoricoConsultas'
+import { PacienteConsultaRoom } from './components/paciente/PacienteConsultaRoom'
 import { FilaAtendimento } from './components/dentista/FilaAtendimento'
 import { ConsultasAtivas } from './components/dentista/ConsultasAtivas'
 import { PerfilDentista } from './components/dentista/PerfilDentista'
@@ -24,7 +25,7 @@ import './index.css'
 function App() {
   const [currentPath, setCurrentPath] = useState('/')
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const { isAuthenticated, isLoading, checkAuth, user, refreshUser } = useAuthStore()
+  const { isAuthenticated, isLoading, checkAuth, user } = useAuthStore()
 
   // Check authentication on app load
   useEffect(() => {
@@ -34,9 +35,9 @@ function App() {
   // Recuperar dados do usuário se estiver autenticado mas sem dados
   useEffect(() => {
     if (isAuthenticated && !user) {
-      refreshUser()
+      checkAuth()
     }
-  }, [isAuthenticated, user, refreshUser])
+  }, [isAuthenticated, user, checkAuth])
 
   // Simple router based on pathname
   useEffect(() => {
@@ -116,6 +117,12 @@ function App() {
     const consultaMatch = currentPath.match(/^\/dentista\/consulta\/(.+)$/)
     if (consultaMatch) {
       return <ConsultaRoom consultaId={consultaMatch[1]} />
+    }
+
+    // Extract patient consultation ID from path if present
+    const pacienteConsultaMatch = currentPath.match(/^\/paciente\/consulta\/(.+)$/)
+    if (pacienteConsultaMatch) {
+      return <PacienteConsultaRoom consultaId={pacienteConsultaMatch[1]} />
     }
 
     // Extract specialty from solicitar-atendimento path

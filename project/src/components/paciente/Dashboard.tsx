@@ -27,6 +27,15 @@ export function PacienteDashboard() {
     return () => clearInterval(interval)
   }, [])
 
+  // Polling automático para verificar mudanças de status
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchQueue() // Atualiza dados da fila a cada 5 segundos
+    }, 5000)
+    
+    return () => clearInterval(interval)
+  }, [fetchQueue])
+
   // Se está mostrando suporte, renderizar a tela de suporte
   if (showSupporte) {
     return <Suporte onBack={() => setShowSupporte(false)} />
@@ -142,19 +151,39 @@ export function PacienteDashboard() {
                   <span className="font-medium">Descrição:</span>
                   <span className="text-gray-600 text-sm">{consultaAtiva.descricao}</span>
                 </div>
-                <div className="bg-accent/5 p-4 rounded-lg">
-                  <p className="text-sm text-center">
-                    {consultaAtiva.status === 'em-fila' 
-                      ? `Você está na posição ${consultaAtiva.posicao} da fila`
-                      : 'Sua consulta está em andamento'
-                    }
-                  </p>
-                  {consultaAtiva.status === 'em-fila' && (
+                {consultaAtiva.status === 'em-fila' ? (
+                  <div className="bg-accent/5 p-4 rounded-lg">
+                    <p className="text-sm text-center">
+                      Você está na posição {consultaAtiva.posicao} da fila
+                    </p>
                     <p className="text-xs text-gray-500 text-center mt-1">
                       Tempo estimado: {consultaAtiva.tempoEstimado} minutos
                     </p>
-                  )}
-                </div>
+                  </div>
+                ) : (
+                  <div className="bg-green-50 border-2 border-green-200 p-4 rounded-lg animate-pulse">
+                    <div className="text-center">
+                      <div className="flex items-center justify-center mb-2">
+                        <div className="w-3 h-3 bg-green-500 rounded-full animate-ping mr-2"></div>
+                        <span className="text-green-800 font-semibold text-sm">
+                          🚨 SUA CONSULTA FOI INICIADA!
+                        </span>
+                      </div>
+                      <p className="text-green-700 text-sm mb-3">
+                        {consultaAtiva.dentistaNome || 'Profissional'} está te aguardando
+                      </p>
+                      <Button 
+                        className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-6 rounded-lg transition-all duration-200 transform hover:scale-105"
+                        onClick={() => window.location.hash = `/paciente/consulta/${consultaAtiva.id}`}
+                      >
+                        🎥 ENTRAR NA CONSULTA
+                      </Button>
+                      <p className="text-xs text-green-600 mt-2">
+                        Clique para iniciar a videchamada
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="text-center py-8">
