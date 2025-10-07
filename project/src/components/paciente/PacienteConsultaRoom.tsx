@@ -58,6 +58,7 @@ export function PacienteConsultaRoom({ consultaId }: PacienteConsultaRoomProps) 
   useEffect(() => {
     const interval = setInterval(() => {
       const messages = getMessages(consultaId)
+      console.log('🔄 Paciente sincronizando mensagens:', messages.length, 'mensagens')
       setChatMessages(messages)
     }, 1000) // Atualiza a cada segundo
     
@@ -103,6 +104,12 @@ export function PacienteConsultaRoom({ consultaId }: PacienteConsultaRoomProps) 
 
   const handleSendMessage = () => {
     if (chatMessage.trim() && user) {
+      console.log('👤 Paciente enviando mensagem:', {
+        consultationId: consultaId,
+        senderId: user.id,
+        senderName: user.name || 'Você',
+        message: chatMessage.trim()
+      })
       addMessage({
         consultationId: consultaId,
         senderId: user.id,
@@ -111,6 +118,8 @@ export function PacienteConsultaRoom({ consultaId }: PacienteConsultaRoomProps) 
         message: chatMessage.trim()
       })
       setChatMessage('')
+    } else {
+      console.log('❌ Erro ao enviar mensagem:', { chatMessage: chatMessage.trim(), user: !!user })
     }
   }
 

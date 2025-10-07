@@ -57,6 +57,7 @@ export function ConsultaRoom({ consultaId }: ConsultaRoomProps) {
   useEffect(() => {
     const interval = setInterval(() => {
       const messages = getMessages(consultaId)
+      console.log('🔄 Dentista sincronizando mensagens:', messages.length, 'mensagens')
       setChatMessages(messages)
     }, 1000) // Atualiza a cada segundo
     
@@ -100,6 +101,12 @@ export function ConsultaRoom({ consultaId }: ConsultaRoomProps) {
 
   const handleSendMessage = () => {
     if (chatMessage.trim() && user) {
+      console.log('🦷 Dentista enviando mensagem:', {
+        consultationId: consultaId,
+        senderId: user.id,
+        senderName: user.name || 'Dr. João Silva',
+        message: chatMessage.trim()
+      })
       addMessage({
         consultationId: consultaId,
         senderId: user.id,
@@ -108,6 +115,8 @@ export function ConsultaRoom({ consultaId }: ConsultaRoomProps) {
         message: chatMessage.trim()
       })
       setChatMessage('')
+    } else {
+      console.log('❌ Erro ao enviar mensagem:', { chatMessage: chatMessage.trim(), user: !!user })
     }
   }
 
