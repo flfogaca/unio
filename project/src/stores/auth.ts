@@ -87,7 +87,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   checkAuth: async () => {
     const token = localStorage.getItem('token')
     if (!token) {
-      set({ isAuthenticated: false, user: null })
+      set({ isAuthenticated: false, user: null, isLoading: false })
       return
     }
 
@@ -95,10 +95,29 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ isLoading: true })
       const response = await apiClient.getProfile()
       
-      if (response.success) {
+      if (response.success && response.data) {
         set({ 
           user: response.data, 
           isAuthenticated: true, 
+          isLoading: false 
+        })
+      } else {
+        // Se a resposta não foi bem-sucedida, mas temos token, tentar manter a sessão
+        console.warn('Profile check failed, but keeping session with token')
+        set({ 
+          isAuthenticated: true, 
+          user: null, // Será preenchido quando necessário
+          isLoading: false 
+        })
+      }
+    } catch (error) {
+      console.error('Error checking auth:', error)
+      // Em caso de erro de rede, manter a sessão se temos token
+      if (token) {
+        console.warn('Network error during auth check, keeping session')
+        set({ 
+          isAuthenticated: true, 
+          user: null,
           isLoading: false 
         })
       } else {
@@ -109,15 +128,23 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           isLoading: false 
         })
       }
-    } catch (error) {
-      apiClient.clearToken()
-      set({ 
-        isAuthenticated: false, 
-        user: null, 
-        isLoading: false 
-      })
     }
   },
 
-  clearError: () => set({ error: null })
+  clearError: () => set({ error: null }),
+
+  // Função para recuperar dados do usuário quando necessário
+  refreshUser: async () => {
+    const token = localStorage.getItem('token')
+    if (!token) return
+
+    try {
+      const response = await apiClient.getProfile()
+      if (response.success && response.data) {
+        set({ user: response.data })
+      }
+    } catch (error) {
+      console.error('Error refreshing user:', error)
+    }
+  }
 }))

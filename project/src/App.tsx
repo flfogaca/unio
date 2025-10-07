@@ -24,12 +24,19 @@ import './index.css'
 function App() {
   const [currentPath, setCurrentPath] = useState('/')
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const { isAuthenticated, isLoading, checkAuth, user } = useAuthStore()
+  const { isAuthenticated, isLoading, checkAuth, user, refreshUser } = useAuthStore()
 
   // Check authentication on app load
   useEffect(() => {
     checkAuth()
   }, [checkAuth])
+
+  // Recuperar dados do usuário se estiver autenticado mas sem dados
+  useEffect(() => {
+    if (isAuthenticated && !user) {
+      refreshUser()
+    }
+  }, [isAuthenticated, user, refreshUser])
 
   // Simple router based on hash
   useEffect(() => {
@@ -90,17 +97,17 @@ function App() {
     
     // Verificar se o usuário tem acesso à rota atual
     if (!hasAccessToRoute(currentPath, userRole)) {
-      return (
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Acesso Negado</h2>
-            <p className="text-gray-600 mb-4">Você não tem permissão para acessar esta página.</p>
-            <Button onClick={() => navigate('/')}>
-              Voltar ao Dashboard
-            </Button>
-          </div>
-        </div>
-      )
+      // Redirecionar automaticamente para o dashboard do usuário
+      const defaultRoute = {
+        paciente: '/paciente',
+        dentista: '/dentista',
+        psicologo: '/dentista',
+        medico: '/dentista',
+        admin: '/admin'
+      }
+      const route = defaultRoute[userRole as keyof typeof defaultRoute] || '/paciente'
+      window.location.hash = route
+      return <div className="flex items-center justify-center h-64">Redirecionando para seu dashboard...</div>
     }
 
     // Extract consultation ID from path if present
