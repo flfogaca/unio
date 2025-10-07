@@ -24,6 +24,7 @@ class ApiClient {
     
     // Sempre buscar o token atual do localStorage
     const currentToken = localStorage.getItem('token');
+    console.log('API Request to:', url, 'Token:', currentToken ? 'Present' : 'Missing');
     
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
@@ -32,6 +33,9 @@ class ApiClient {
 
     if (currentToken) {
       headers.Authorization = `Bearer ${currentToken}`;
+      console.log('Authorization header set:', `Bearer ${currentToken.substring(0, 20)}...`);
+    } else {
+      console.log('No token found, request will be unauthenticated');
     }
 
     try {

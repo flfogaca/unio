@@ -20,6 +20,11 @@ const prioridades = [
 export function SolicitarAtendimento() {
   const { addToQueue } = useQueueStore()
   const { user } = useAuthStore()
+  
+  const navigate = (path: string) => {
+    window.history.pushState({}, '', path)
+    window.dispatchEvent(new PopStateEvent('popstate'))
+  }
   const [currentStep, setCurrentStep] = useState(1)
   const [formData, setFormData] = useState({
     especialidade: '',
@@ -77,7 +82,7 @@ export function SolicitarAtendimento() {
   }
 
   const handleNavigateToQueue = () => {
-    window.location.hash = '/paciente'
+    navigate('/paciente')
   }
 
   const handleNewRequest = () => {

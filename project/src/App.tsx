@@ -38,16 +38,16 @@ function App() {
     }
   }, [isAuthenticated, user, refreshUser])
 
-  // Simple router based on hash
+  // Simple router based on pathname
   useEffect(() => {
-    const handleHashChange = () => {
-      setCurrentPath(window.location.hash.slice(1) || '/')
+    const handleLocationChange = () => {
+      setCurrentPath(window.location.pathname || '/')
     }
 
-    window.addEventListener('hashchange', handleHashChange)
-    handleHashChange() // Set initial path
+    window.addEventListener('popstate', handleLocationChange)
+    handleLocationChange() // Set initial path
 
-    return () => window.removeEventListener('hashchange', handleHashChange)
+    return () => window.removeEventListener('popstate', handleLocationChange)
   }, [])
 
   // Redirecionar usuário para sua rota padrão se estiver na raiz
@@ -67,7 +67,8 @@ function App() {
   }, [isAuthenticated, user, currentPath])
 
   const navigate = (path: string) => {
-    window.location.hash = path
+    window.history.pushState({}, '', path)
+    setCurrentPath(path)
     setSidebarOpen(false)
   }
 
