@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { useQueueStore } from '@/stores/queue'
+import { useAuthStore } from '@/stores/auth'
 import { useState } from 'react'
 import { Upload, ArrowRight, ArrowLeft, Check } from 'lucide-react'
 
@@ -18,6 +19,7 @@ const prioridades = [
 
 export function SolicitarAtendimento() {
   const { addToQueue } = useQueueStore()
+  const { user } = useAuthStore()
   const [currentStep, setCurrentStep] = useState(1)
   const [formData, setFormData] = useState({
     especialidade: '',
@@ -39,22 +41,30 @@ export function SolicitarAtendimento() {
   }
 
   const handleSubmit = async () => {
+    if (!user) {
+      console.error('Usuário não logado')
+      return
+    }
+
     setIsSubmitting(true)
     
-    // Simula envio
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    
-    addToQueue({
-      pacienteId: 'p1',
-      pacienteNome: 'Paciente Atual',
-      especialidade: formData.especialidade,
-      descricao: formData.descricao,
-      prioridade: formData.prioridade,
-      imagem: formData.imagem || undefined
-    })
-    
-    setIsSubmitting(false)
-    setCurrentStep(4) // Sucesso
+    try {
+      await addToQueue({
+        pacienteId: user.id,
+        pacienteNome: user.name,
+        especialidade: formData.especialidade,
+        descricao: formData.descricao,
+        prioridade: formData.prioridade,
+        imagem: formData.imagem || undefined
+      })
+      
+      setIsSubmitting(false)
+      setCurrentStep(4) // Sucesso
+    } catch (error) {
+      console.error('Erro ao adicionar à fila:', error)
+      setIsSubmitting(false)
+      // Manter no step atual para mostrar erro
+    }
   }
 
   const canProceed = () => {

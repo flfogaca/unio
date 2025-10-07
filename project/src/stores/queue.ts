@@ -38,9 +38,16 @@ export const useQueueStore = create<QueueState>((set, get) => ({
     try {
       set({ isLoading: true, error: null })
       
+      // Converter especialidade para formato do backend
+      const specialtyMap = {
+        'dentista': 'dentista',
+        'psicólogo': 'psicologo', 
+        'médico clínico': 'medico_clinico'
+      }
+      
       const consultationData = {
         patientId: newItem.pacienteId,
-        specialty: newItem.especialidade.toLowerCase().replace(' ', '_'),
+        specialty: specialtyMap[newItem.especialidade.toLowerCase() as keyof typeof specialtyMap] || newItem.especialidade.toLowerCase(),
         description: newItem.descricao,
         reason: newItem.descricao,
         priority: newItem.prioridade,

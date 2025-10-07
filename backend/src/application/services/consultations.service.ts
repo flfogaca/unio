@@ -76,7 +76,7 @@ export class ConsultationsService {
   }
 
   async create(createConsultationDto: CreateConsultationDto) {
-    return this.prismaService.consultation.create({
+    const consultation = await this.prismaService.consultation.create({
       data: {
         ...createConsultationDto,
         status: 'em_fila',
@@ -87,6 +87,11 @@ export class ConsultationsService {
         patient: true,
       },
     });
+
+    // Atualizar posições na fila após criar nova consulta
+    await this.prismaService.updateQueuePositions(createConsultationDto.specialty);
+
+    return consultation;
   }
 
   async update(id: string, updateData: any) {
