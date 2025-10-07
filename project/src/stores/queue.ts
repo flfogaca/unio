@@ -164,10 +164,13 @@ export const useQueueStore = create<QueueState>((set, get) => ({
 
   updatePositions: async () => {
     try {
-      const consultations = await apiClient.getConsultations()
+      const response = await apiClient.getConsultations()
       
-      if (consultations.success) {
-        const queueItems = consultations.data
+      if (response.success) {
+        // A resposta tem estrutura paginada: { data: { data: [], total, ... } }
+        const consultationsList = response.data.data || response.data || []
+        
+        const queueItems = consultationsList
           .filter((c: any) => c.status === 'em_fila' || c.status === 'em_atendimento')
           .map((c: any) => ({
             id: c.id,

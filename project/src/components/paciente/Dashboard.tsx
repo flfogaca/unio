@@ -3,13 +3,20 @@ import { StatusBadge } from '@/components/ui/StatusBadge'
 import { Button } from '@/components/ui/Button'
 import { Suporte } from './Suporte'
 import { useQueueStore } from '@/stores/queue'
+import { useAuthStore } from '@/stores/auth'
 import { Clock, Users, MessageSquare, Calendar, FileText } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 export function PacienteDashboard() {
-  const { items } = useQueueStore()
+  const { items, fetchQueue } = useQueueStore()
+  const { user } = useAuthStore()
   const [currentTime, setCurrentTime] = useState(new Date())
   const [showSupporte, setShowSupporte] = useState(false)
+  
+  // Buscar consultas ao montar o componente
+  useEffect(() => {
+    fetchQueue()
+  }, [fetchQueue])
   
   // Simula atualização em tempo real
   useEffect(() => {
@@ -25,8 +32,8 @@ export function PacienteDashboard() {
     return <Suporte onBack={() => setShowSupporte(false)} />
   }
 
-  // Filtra consultas do paciente (mockado - assumindo paciente ID 'p1')
-  const minhasConsultas = items.filter(item => item.pacienteId === 'p1')
+  // Filtra consultas do paciente logado
+  const minhasConsultas = items.filter(item => item.pacienteId === user?.id)
   const consultaAtiva = minhasConsultas.find(item => item.status === 'em-fila' || item.status === 'em-atendimento')
   const historicoConsultas = minhasConsultas.filter(item => item.status === 'finalizado')
 
