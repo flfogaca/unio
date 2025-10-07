@@ -96,37 +96,102 @@ UserRole.admin       → Acesso a todas (gerenciamento)
 
 ---
 
-## 📦 Commits Realizados
+## 📦 Commits Realizados (Total: 11)
 
-### Commit 1: Autenticação com Email
+### 1. `524b815` - Autenticação com Email
 ```
 fix: corrigir autenticação de CPF para EMAIL
-
-- Atualizar LoginDto para usar email ao invés de cpf
-- Corrigir AuthService.validateUser para buscar por email
-- Configurar LocalStrategy para usar campo email
-- Manter campo cpf no cadastro mas remover de login
 ```
 
-### Commit 2: Isolamento por Especialidade
+### 2. `f9ebe52` - Isolamento por Especialidade  
 ```
 feat: adicionar isolamento por especialidade para profissionais
-
-- Apenas pacientes podem criar consultas (@Roles(paciente))
-- Profissionais veem apenas filas da sua especialidade
-- Validação de especialidade em assume, start e finish
-- Uso de SpecialtyFilterService para mapear role->specialty
-- Dentista vê só dentista, psicólogo só psicólogo, médico só médico
 ```
 
-### Commit 3: Simplificar Frontend
+### 3. `b46a434` - Simplificar Frontend
 ```
 fix: simplificar parsing de resposta do login no frontend
-
-- Remover lógica de double-nesting desnecessária
-- response.data já contém user e token diretamente
-- Melhorar clareza do código de autenticação
 ```
+
+### 4. `e8e6c40` - Documentação
+```
+docs: adicionar documentação completa das correções aplicadas
+```
+
+### 5. `5252598` - Correção Auth Controller
+```
+fix: corrigir auth.controller.ts para usar email ao invés de CPF
+```
+
+### 6. `7fe780f` - Listagem com Filtros
+```
+fix: corrigir listagem de consultas e cálculo de tempo estimado
+```
+
+### 7. `83a41fd` - Fallback Tempo
+```
+fix: adicionar fallback para cálculo de tempo de espera
+```
+
+### 8. `7be86a2` - Dashboard Paciente
+```
+fix: corrigir exibição de consultas no dashboard do paciente
+```
+
+### 9. `47d060d` - Fila Dentista
+```
+fix: buscar dados do backend na fila do dentista
+```
+
+### 10. `debe6e7` - Paginação NaN
+```
+fix: corrigir erro NaN em paginação de consultas
+```
+
+### 11. `344b6ee` - Dependência Circular
+```
+refactor: remover dependência circular com WaitTimeModule
+```
+
+---
+
+## 🐛 **PROBLEMA CRÍTICO RESOLVIDO: Consultas Sumiam ao Recarregar**
+
+### **Causa Raiz:**
+O controller passava `page` e `limit` como `null` quando não fornecidos na query string:
+```
+{"page":null,"limit":null,...}
+```
+
+### **Efeito:**
+```typescript
+skip: (null - 1) * null = NaN
+take: null
+```
+
+Prisma rejeitava a query com:
+```
+Error: skip: NaN
+Argument `take` is missing
+```
+
+### **Solução Aplicada:**
+```typescript
+// ✅ ANTES (causava NaN):
+const { page = 1, limit = 10 } = options;
+const skip = (page - 1) * limit;  // Se page=null → NaN
+
+// ✅ AGORA (sempre válido):
+const page = rawPage && !isNaN(Number(rawPage)) ? Number(rawPage) : 1;
+const limit = rawLimit && !isNaN(Number(rawLimit)) ? Number(rawLimit) : 10;
+const skip = (page - 1) * limit;  // Sempre número válido
+```
+
+### **Resultado:**
+- ✅ Consultas persistem após recarregar a página
+- ✅ Backend retorna dados corretamente
+- ✅ Dashboard mostra posição e tempo estimado
+- ✅ Fila do dentista exibe pacientes
 
 ---
 
