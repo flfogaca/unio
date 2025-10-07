@@ -97,7 +97,14 @@ export class ConsultationsController {
   @ApiOperation({ summary: 'Get professional queue (Professionals only)' })
   @ApiResponse({ status: 200, description: 'Professional queue retrieved successfully' })
   async getProfessionalQueue(@CurrentUser() user: any) {
-    return this.consultationsService.getProfessionalQueue(user.id, user.specialties[0] as Specialty);
+    // Get specialty based on user role
+    const specialty = this.specialtyFilterService.getUserSpecialty(user.role);
+    
+    if (!specialty) {
+      throw new Error('Invalid professional role');
+    }
+    
+    return this.consultationsService.getProfessionalQueue(user.id, specialty);
   }
 
   @Get(':id')
@@ -115,6 +122,14 @@ export class ConsultationsController {
   @ApiResponse({ status: 404, description: 'Consultation not found' })
   @ApiResponse({ status: 400, description: 'Cannot assume this consultation' })
   async assume(@Param('id') id: string, @CurrentUser() user: any) {
+    // Verificar se a consulta é da especialidade do profissional
+    const consultation = await this.consultationsService.findOne(id);
+    const userSpecialty = this.specialtyFilterService.getUserSpecialty(user.role);
+    
+    if (userSpecialty && consultation.specialty !== userSpecialty) {
+      throw new Error('Você só pode assumir consultas da sua especialidade');
+    }
+    
     return this.consultationsService.assume(id, user.id);
   }
 
@@ -125,6 +140,14 @@ export class ConsultationsController {
   @ApiResponse({ status: 404, description: 'Consultation not found' })
   @ApiResponse({ status: 400, description: 'Cannot start this consultation' })
   async start(@Param('id') id: string, @CurrentUser() user: any) {
+    // Verificar se a consulta é da especialidade do profissional
+    const consultation = await this.consultationsService.findOne(id);
+    const userSpecialty = this.specialtyFilterService.getUserSpecialty(user.role);
+    
+    if (userSpecialty && consultation.specialty !== userSpecialty) {
+      throw new Error('Você só pode iniciar consultas da sua especialidade');
+    }
+    
     return this.consultationsService.start(id);
   }
 
@@ -139,6 +162,14 @@ export class ConsultationsController {
     @Body(ValidationPipe) finishData: any,
     @CurrentUser() user: any,
   ) {
+    // Verificar se a consulta é da especialidade do profissional
+    const consultation = await this.consultationsService.findOne(id);
+    const userSpecialty = this.specialtyFilterService.getUserSpecialty(user.role);
+    
+    if (userSpecialty && consultation.specialty !== userSpecialty) {
+      throw new Error('Você só pode finalizar consultas da sua especialidade');
+    }
+    
     return this.consultationsService.finish(id, finishData.notes);
   }
 
