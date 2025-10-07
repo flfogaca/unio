@@ -105,6 +105,33 @@ class ApiClient {
     });
   }
 
+  // Consultation actions
+  async assumeConsultation(id: string) {
+    return this.request(`/consultations/${id}/assume`, {
+      method: 'PATCH',
+    });
+  }
+
+  async startConsultation(id: string) {
+    return this.request(`/consultations/${id}/start`, {
+      method: 'PATCH',
+    });
+  }
+
+  async finishConsultation(id: string, notes?: string) {
+    return this.request(`/consultations/${id}/finish`, {
+      method: 'PATCH',
+      body: JSON.stringify({ notes }),
+    });
+  }
+
+  async cancelConsultation(id: string, reason?: string) {
+    return this.request(`/consultations/${id}/cancel`, {
+      method: 'PATCH',
+      body: JSON.stringify({ reason }),
+    });
+  }
+
   // Availability endpoints
   async getSpecialtyAvailability(specialty: string) {
     return this.request(`/availability/specialty/${specialty}`);

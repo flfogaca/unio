@@ -23,7 +23,7 @@ interface QueueState {
   error: string | null
   addToQueue: (item: Omit<QueueItem, 'id' | 'status' | 'criadoEm' | 'posicao' | 'tempoEstimado'>) => Promise<void>
   assumeConsulta: (itemId: string, dentistaId: string) => Promise<void>
-  finalizarConsulta: (itemId: string) => Promise<void>
+  finalizarConsulta: (itemId: string, notes?: string) => Promise<void>
   updatePositions: () => Promise<void>
   fetchQueue: () => Promise<void>
   clearError: () => void
@@ -95,22 +95,28 @@ export const useQueueStore = create<QueueState>((set, get) => ({
     try {
       set({ isLoading: true, error: null })
       
-      const response = await apiClient.updateConsultation(itemId, {
-        professionalId: dentistaId,
-        status: 'em_atendimento',
-        startedAt: new Date().toISOString()
-      })
+      // Usar endpoint específico de assumir consulta
+      const response = await apiClient.assumeConsultation(itemId)
       
       if (response.success) {
+        // Backend retorna a consulta atualizada
+        const consultation = response.data
+        
         set(state => ({
           items: state.items.map(item =>
             item.id === itemId 
-              ? { ...item, status: 'em-atendimento', dentistaId }
+              ? { 
+                  ...item, 
+                  status: 'em-atendimento', 
+                  dentistaId: consultation.professionalId,
+                  dentistaNome: consultation.professional?.name
+                }
               : item
           ),
           isLoading: false
         }))
         
+        // Atualizar posições da fila
         await get().updatePositions()
       } else {
         set({ 
@@ -119,6 +125,7 @@ export const useQueueStore = create<QueueState>((set, get) => ({
         })
       }
     } catch (error: any) {
+      console.error('Erro ao assumir consulta:', error)
       set({ 
         error: error.message || 'Erro ao assumir consulta',
         isLoading: false 
@@ -127,14 +134,12 @@ export const useQueueStore = create<QueueState>((set, get) => ({
     }
   },
 
-  finalizarConsulta: async (itemId) => {
+  finalizarConsulta: async (itemId, notes?: string) => {
     try {
       set({ isLoading: true, error: null })
       
-      const response = await apiClient.updateConsultation(itemId, {
-        status: 'finalizado',
-        finishedAt: new Date().toISOString()
-      })
+      // Usar endpoint específico de finalizar consulta
+      const response = await apiClient.finishConsultation(itemId, notes)
       
       if (response.success) {
         set(state => ({
@@ -146,6 +151,7 @@ export const useQueueStore = create<QueueState>((set, get) => ({
           isLoading: false
         }))
         
+        // Atualizar posições da fila
         await get().updatePositions()
       } else {
         set({ 
@@ -154,6 +160,7 @@ export const useQueueStore = create<QueueState>((set, get) => ({
         })
       }
     } catch (error: any) {
+      console.error('Erro ao finalizar consulta:', error)
       set({ 
         error: error.message || 'Erro ao finalizar consulta',
         isLoading: false 
