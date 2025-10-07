@@ -127,8 +127,28 @@ model Consultation {
   professional      User?               @relation("ProfessionalConsultations", fields: [professionalId], references: [id], onDelete: SetNull)
   medicalRecord     MedicalRecord?
   notifications     Notification[]
+  chatMessages      ChatMessage[]
 
   @@map("consultations")
+}
+
+// Chat Message model
+model ChatMessage {
+  id              String   @id @default(uuid())
+  consultationId  String
+  senderId        String
+  senderName      String
+  senderType      String   // 'paciente', 'profissional', 'sistema'
+  message         String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  consultation    Consultation @relation(fields: [consultationId], references: [id], onDelete: Cascade)
+
+  @@map("chat_messages")
+  @@index([consultationId])
+  @@index([createdAt])
 }
 
 // Medical Record model

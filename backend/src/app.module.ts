@@ -20,6 +20,7 @@ import { WaitTimeModule } from './presentation/controllers/wait-time/wait-time.m
 import { AvailabilityModule } from './presentation/controllers/availability/availability.module';
 import { PsychologistModule } from './presentation/controllers/psychologist/psychologist.module';
 import { MedicalModule } from './presentation/controllers/medical/medical.module';
+import { ChatModule } from './presentation/controllers/chat/chat.module';
 import { TestController } from './test.controller';
 
 // Global interceptors and filters
@@ -63,6 +64,7 @@ import { JwtAuthGuard } from './presentation/controllers/auth/guards/jwt-auth.gu
     AvailabilityModule,
     PsychologistModule,
     MedicalModule,
+    ChatModule,
   ],
   controllers: [TestController],
   providers: [

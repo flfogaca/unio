@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { apiClient } from '@/lib/api'
 
 export interface ChatMessage {
   id: string
@@ -8,39 +9,132 @@ export interface ChatMessage {
   senderType: 'paciente' | 'profissional' | 'sistema'
   message: string
   timestamp: Date
+  createdAt?: string
 }
 
 interface ChatState {
   messages: { [consultationId: string]: ChatMessage[] }
-  addMessage: (message: Omit<ChatMessage, 'id' | 'timestamp'>) => void
+  lastFetch: { [consultationId: string]: Date }
+  addMessage: (message: Omit<ChatMessage, 'id' | 'timestamp'>) => Promise<void>
+  loadMessages: (consultationId: string) => Promise<void>
+  pollMessages: (consultationId: string) => Promise<void>
+  setMessages: (consultationId: string, messages: ChatMessage[]) => void
   getMessages: (consultationId: string) => ChatMessage[]
   clearMessages: (consultationId: string) => void
-  // Forçar re-render quando mensagens mudam
-  forceUpdate: () => void
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
   messages: {},
+  lastFetch: {},
 
-  addMessage: (messageData) => {
-    console.log('💬 Adicionando mensagem ao chat:', messageData)
-    const message: ChatMessage = {
-      ...messageData,
-      id: Date.now().toString(),
-      timestamp: new Date()
-    }
-
-    set(state => {
-      const newMessages = {
-        ...state.messages,
-        [message.consultationId]: [
-          ...(state.messages[message.consultationId] || []),
-          message
-        ]
+  addMessage: async (messageData) => {
+    console.log('💬 Enviando mensagem ao backend:', messageData)
+    
+    try {
+      // Enviar mensagem para o backend
+      const response = await apiClient.sendChatMessage(messageData)
+      console.log('✅ Mensagem salva no backend:', response.data)
+      
+      // Adicionar ao store local
+      const message: ChatMessage = {
+        ...messageData,
+        id: response.data.id,
+        timestamp: new Date(response.data.createdAt),
+        createdAt: response.data.createdAt
       }
-      console.log('💬 Mensagens atualizadas:', newMessages)
-      return { messages: newMessages }
-    })
+
+      set(state => {
+        const newMessages = {
+          ...state.messages,
+          [message.consultationId]: [
+            ...(state.messages[message.consultationId] || []),
+            message
+          ]
+        }
+        console.log('💬 Mensagens atualizadas no store:', newMessages[message.consultationId].length)
+        return { messages: newMessages }
+      })
+    } catch (error) {
+      console.error('❌ Erro ao enviar mensagem:', error)
+      throw error
+    }
+  },
+
+  loadMessages: async (consultationId: string) => {
+    console.log('📥 Carregando mensagens do backend:', consultationId)
+    
+    try {
+      const response = await apiClient.getChatMessages(consultationId)
+      const messages: ChatMessage[] = response.data.map((msg: any) => ({
+        ...msg,
+        timestamp: new Date(msg.createdAt)
+      }))
+      
+      console.log('📋 Mensagens carregadas:', messages.length)
+      
+      set(state => ({
+        messages: {
+          ...state.messages,
+          [consultationId]: messages
+        },
+        lastFetch: {
+          ...state.lastFetch,
+          [consultationId]: new Date()
+        }
+      }))
+    } catch (error) {
+      console.error('❌ Erro ao carregar mensagens:', error)
+    }
+  },
+
+  pollMessages: async (consultationId: string) => {
+    const state = get()
+    const lastFetch = state.lastFetch[consultationId]
+    
+    if (!lastFetch) {
+      // Se nunca buscou, buscar todas
+      await state.loadMessages(consultationId)
+      return
+    }
+    
+    console.log('🔄 Buscando mensagens novas desde:', lastFetch)
+    
+    try {
+      const response = await apiClient.getChatMessagesSince(consultationId, lastFetch)
+      const newMessages: ChatMessage[] = response.data.map((msg: any) => ({
+        ...msg,
+        timestamp: new Date(msg.createdAt)
+      }))
+      
+      if (newMessages.length > 0) {
+        console.log('📨 Novas mensagens recebidas:', newMessages.length)
+        
+        set(state => ({
+          messages: {
+            ...state.messages,
+            [consultationId]: [
+              ...(state.messages[consultationId] || []),
+              ...newMessages
+            ]
+          },
+          lastFetch: {
+            ...state.lastFetch,
+            [consultationId]: new Date()
+          }
+        }))
+      }
+    } catch (error) {
+      console.error('❌ Erro ao buscar novas mensagens:', error)
+    }
+  },
+
+  setMessages: (consultationId: string, messages: ChatMessage[]) => {
+    set(state => ({
+      messages: {
+        ...state.messages,
+        [consultationId]: messages
+      }
+    }))
   },
 
   getMessages: (consultationId: string) => {
@@ -54,33 +148,26 @@ export const useChatStore = create<ChatState>((set, get) => ({
         [consultationId]: []
       }
     }))
-  },
-
-  forceUpdate: () => {
-    set(state => ({ ...state }))
   }
 }))
 
-// Função para inicializar mensagens do sistema
-export const initializeConsultationChat = (consultationId: string) => {
+export const initializeConsultationChat = async (consultationId: string) => {
   console.log('🚀 Inicializando chat para consulta:', consultationId)
-  const { addMessage, getMessages } = useChatStore.getState()
+  const { loadMessages, addMessage, getMessages } = useChatStore.getState()
   
-  // Verificar se já tem mensagens para esta consulta
+  // Carregar mensagens do backend
+  await loadMessages(consultationId)
+  
+  // Se não houver mensagens, adicionar mensagem inicial do sistema
   const existingMessages = getMessages(consultationId)
-  console.log('📋 Mensagens existentes:', existingMessages.length)
-  
   if (existingMessages.length === 0) {
     console.log('➕ Adicionando mensagem inicial do sistema')
-    // Adicionar mensagem inicial do sistema
-    addMessage({
+    await addMessage({
       consultationId,
       senderId: 'sistema',
       senderName: 'Sistema',
       senderType: 'sistema',
       message: 'Consulta iniciada. Conectando os participantes...'
     })
-  } else {
-    console.log('✅ Chat já inicializado para esta consulta')
   }
 }

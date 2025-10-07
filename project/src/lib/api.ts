@@ -233,6 +233,37 @@ class ApiClient {
   isAuthenticated(): boolean {
     return !!this.token;
   }
+
+  // Chat methods
+  async sendChatMessage(data: {
+    consultationId: string;
+    senderId: string;
+    senderName: string;
+    senderType: 'paciente' | 'profissional' | 'sistema';
+    message: string;
+  }) {
+    console.log('💬 API: Enviando mensagem ao backend:', data);
+    return this.request('/chat/messages', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getChatMessages(consultationId: string, limit?: number) {
+    const params = limit ? `?limit=${limit}` : '';
+    console.log('📥 API: Buscando mensagens do backend para:', consultationId);
+    return this.request(`/chat/messages/${consultationId}${params}`, {
+      method: 'GET',
+    });
+  }
+
+  async getChatMessagesSince(consultationId: string, since: Date) {
+    const sinceISO = since.toISOString();
+    console.log('🔄 API: Buscando mensagens novas desde:', sinceISO);
+    return this.request(`/chat/messages/${consultationId}?since=${sinceISO}`, {
+      method: 'GET',
+    });
+  }
 }
 
 export const apiClient = new ApiClient(API_BASE_URL);

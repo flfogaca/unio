@@ -57,6 +57,17 @@ export function ConsultaRoom({ consultaId }: ConsultaRoomProps) {
     initializeConsultationChat(consultaId)
   }, [consultaId])
 
+  // Polling para mensagens novas
+  useEffect(() => {
+    const { pollMessages } = useChatStore.getState()
+    
+    const interval = setInterval(() => {
+      pollMessages(consultaId)
+    }, 2000) // Poll a cada 2 segundos
+    
+    return () => clearInterval(interval)
+  }, [consultaId])
+
   useEffect(() => {
     const updated = items.find(item => item.id === consultaId)
     setConsulta(updated)
@@ -92,7 +103,7 @@ export function ConsultaRoom({ consultaId }: ConsultaRoomProps) {
     }
   }
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (chatMessage.trim() && user) {
       console.log('🦷 Dentista enviando mensagem:', {
         consultationId: consultaId,
@@ -100,14 +111,20 @@ export function ConsultaRoom({ consultaId }: ConsultaRoomProps) {
         senderName: user.name || 'Dr. João Silva',
         message: chatMessage.trim()
       })
-      addMessage({
-        consultationId: consultaId,
-        senderId: user.id,
-        senderName: user.name || 'Dr. João Silva',
-        senderType: 'profissional',
-        message: chatMessage.trim()
-      })
-      setChatMessage('')
+      
+      try {
+        await addMessage({
+          consultationId: consultaId,
+          senderId: user.id,
+          senderName: user.name || 'Dr. João Silva',
+          senderType: 'profissional',
+          message: chatMessage.trim()
+        })
+        setChatMessage('')
+      } catch (error) {
+        console.error('❌ Erro ao enviar mensagem:', error)
+        alert('Erro ao enviar mensagem. Tente novamente.')
+      }
     } else {
       console.log('❌ Erro ao enviar mensagem:', { chatMessage: chatMessage.trim(), user: !!user })
     }
@@ -255,22 +272,6 @@ export function ConsultaRoom({ consultaId }: ConsultaRoomProps) {
                 />
                 <Button size="sm" onClick={handleSendMessage}>
                   Enviar
-                </Button>
-                <Button 
-                  size="sm" 
-                  variant="secondary"
-                  onClick={() => {
-                    console.log('🧪 Teste: Enviando mensagem de teste')
-                    addMessage({
-                      consultationId: consultaId,
-                      senderId: 'teste',
-                      senderName: 'Teste',
-                      senderType: 'profissional',
-                      message: 'Mensagem de teste do dentista'
-                    })
-                  }}
-                >
-                  Teste
                 </Button>
               </div>
             </CardContent>
