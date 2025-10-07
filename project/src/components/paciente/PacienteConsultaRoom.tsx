@@ -238,27 +238,41 @@ export function PacienteConsultaRoom({ consultaId }: PacienteConsultaRoomProps) 
           {/* Chat */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MessageSquare className="h-5 w-5 text-accent" />
-                Chat
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="h-5 w-5 text-accent" />
+                  Chat
+                </div>
+                <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                  {chatMessages.length} mensagens
+                </span>
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3 h-64 overflow-y-auto">
-                {chatMessages.map((msg) => (
-                  <div key={msg.id} className={`p-2 rounded-lg ${
-                    msg.senderType === 'paciente' 
-                      ? 'bg-accent/10 ml-4' 
-                      : msg.senderType === 'sistema'
-                      ? 'bg-yellow-50 text-yellow-800 text-center'
-                      : 'bg-gray-100 mr-4'
-                  }`}>
-                    <div className="text-xs font-medium text-gray-600 mb-1">
-                      {msg.senderName} - {msg.timestamp.toLocaleTimeString()}
-                    </div>
-                    <div className="text-sm">{msg.message}</div>
+                {chatMessages.length === 0 ? (
+                  <div className="text-center text-gray-500 py-4">
+                    Nenhuma mensagem ainda
                   </div>
-                ))}
+                ) : (
+                  chatMessages.map((msg) => {
+                    console.log('👤 Renderizando mensagem:', msg)
+                    return (
+                      <div key={msg.id} className={`p-2 rounded-lg ${
+                        msg.senderType === 'paciente' 
+                          ? 'bg-accent/10 ml-4' 
+                          : msg.senderType === 'sistema'
+                          ? 'bg-yellow-50 text-yellow-800 text-center'
+                          : 'bg-gray-100 mr-4'
+                      }`}>
+                        <div className="text-xs font-medium text-gray-600 mb-1">
+                          {msg.senderName} - {msg.timestamp.toLocaleTimeString()}
+                        </div>
+                        <div className="text-sm">{msg.message}</div>
+                      </div>
+                    )
+                  })
+                )}
               </div>
               <div className="flex gap-2 mt-3">
                 <input
