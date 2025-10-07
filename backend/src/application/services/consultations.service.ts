@@ -1,7 +1,6 @@
-import { Injectable, NotFoundException, Inject, forwardRef } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { Specialty, ConsultationStatus, ConsultationPriority } from '@/shared/types';
-import { WaitTimeService } from './wait-time.service';
 
 export interface CreateConsultationDto {
   patientId: string;
@@ -23,63 +22,91 @@ export interface FindConsultationsOptions {
   userRole?: string;
 }
 
+import { Logger } from '@nestjs/common';
+
 @Injectable()
 export class ConsultationsService {
+  private readonly logger = new Logger(ConsultationsService.name);
+  
   constructor(
     private readonly prismaService: PrismaService,
-    @Inject(forwardRef(() => WaitTimeService))
-    private readonly waitTimeService: WaitTimeService,
   ) {}
 
   async findAll(options: FindConsultationsOptions = {}) {
-    const { page = 1, limit = 10, status, specialty, patientId, professionalId, userId, userRole } = options;
-    
-    const where: any = {};
-    if (status) where.status = status;
-    if (specialty) where.specialty = specialty;
-    
-    // Filtrar por role do usuário
-    if (userId && userRole) {
-      if (userRole === 'paciente') {
-        // Pacientes veem apenas suas próprias consultas
-        where.patientId = userId;
-      } else if (userRole === 'dentista' || userRole === 'psicologo' || userRole === 'medico') {
-        // Profissionais veem apenas consultas da sua especialidade
-        const specialtyMap = {
-          'dentista': 'dentista',
-          'psicologo': 'psicologo',
-          'medico': 'medico_clinico'
-        };
-        where.specialty = specialtyMap[userRole as keyof typeof specialtyMap];
+    try {
+      this.logger.log('FindAll called with options:', JSON.stringify(options));
+      const { 
+        page: rawPage, 
+        limit: rawLimit, 
+        status, 
+        specialty, 
+        patientId, 
+        professionalId, 
+        userId, 
+        userRole 
+      } = options;
+      
+      // Garantir que page e limit são números válidos
+      const page = rawPage && !isNaN(Number(rawPage)) ? Number(rawPage) : 1;
+      const limit = rawLimit && !isNaN(Number(rawLimit)) ? Number(rawLimit) : 10;
+      
+      this.logger.log(`Parsed values - page: ${page}, limit: ${limit}`);
+      
+      const where: any = {};
+      if (status) where.status = status;
+      if (specialty) where.specialty = specialty;
+      
+      // Filtrar por role do usuário
+      if (userId && userRole) {
+        this.logger.log(`Filtering for user ${userId} with role ${userRole}`);
+        if (userRole === 'paciente') {
+          // Pacientes veem apenas suas próprias consultas
+          where.patientId = userId;
+        } else if (userRole === 'dentista' || userRole === 'psicologo' || userRole === 'medico') {
+          // Profissionais veem apenas consultas da sua especialidade
+          const specialtyMap = {
+            'dentista': 'dentista',
+            'psicologo': 'psicologo',
+            'medico': 'medico_clinico'
+          };
+          where.specialty = specialtyMap[userRole as keyof typeof specialtyMap];
+        }
+        // Admin não tem filtro adicional (vê todas)
       }
-      // Admin não tem filtro adicional (vê todas)
+      
+      // Permitir filtro específico se fornecido
+      if (patientId) where.patientId = patientId;
+      if (professionalId) where.professionalId = professionalId;
+
+      this.logger.log('Where clause:', JSON.stringify(where));
+
+      const [consultations, total] = await Promise.all([
+        this.prismaService.consultation.findMany({
+          where,
+          include: {
+            patient: true,
+            professional: true,
+          },
+          orderBy: { createdAt: 'desc' },
+          skip: (page - 1) * limit,
+          take: limit,
+        }),
+        this.prismaService.consultation.count({ where }),
+      ]);
+
+      this.logger.log(`Found ${consultations.length} consultations, total: ${total}`);
+
+      return {
+        data: consultations,
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      };
+    } catch (error) {
+      this.logger.error('Error in findAll:', error);
+      throw error;
     }
-    
-    // Permitir filtro específico se fornecido
-    if (patientId) where.patientId = patientId;
-    if (professionalId) where.professionalId = professionalId;
-
-    const [consultations, total] = await Promise.all([
-      this.prismaService.consultation.findMany({
-        where,
-        include: {
-          patient: true,
-          professional: true,
-        },
-        orderBy: { createdAt: 'desc' },
-        skip: (page - 1) * limit,
-        take: limit,
-      }),
-      this.prismaService.consultation.count({ where }),
-    ]);
-
-    return {
-      data: consultations,
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    };
   }
 
   async findOne(id: string) {
@@ -100,13 +127,8 @@ export class ConsultationsService {
   }
 
   async create(createConsultationDto: CreateConsultationDto) {
-    // Calcular tempo estimado de espera
-    let estimatedWaitTime = 15; // Valor padrão
-    try {
-      estimatedWaitTime = await this.waitTimeService.calculateWaitTime(createConsultationDto.specialty);
-    } catch (error) {
-      console.log('Error calculating wait time, using default:', error);
-    }
+    // Usar tempo padrão por enquanto (TODO: integrar WaitTimeService)
+    const estimatedWaitTime = 15;
     
     const consultation = await this.prismaService.consultation.create({
       data: {
