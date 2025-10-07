@@ -34,6 +34,11 @@ export class SimpleAuthController {
       const payload = { email: user.email, sub: user.id, role: user.role };
       const token = this.jwtService.sign(payload);
       
+      console.log('=== LOGIN SUCCESS ===');
+      console.log('User:', user.email);
+      console.log('Token generated:', token ? 'Yes' : 'No');
+      console.log('Token length:', token ? token.length : 0);
+      
       return {
         success: true,
         data: {

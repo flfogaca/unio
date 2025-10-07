@@ -40,10 +40,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ isLoading: true, error: null })
       
       const response = await apiClient.login(credentials)
+      console.log('Login response:', response)
       
       if (response.success) {
         const { user, token } = response.data
-        apiClient.setToken(token)
+        console.log('Token received:', token ? 'Present' : 'Missing')
+        console.log('Token value:', token)
+        
+        if (token) {
+          apiClient.setToken(token)
+          console.log('Token stored in localStorage')
+        } else {
+          console.error('No token in response!')
+        }
         
         set({ 
           user, 
