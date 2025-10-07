@@ -43,7 +43,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       console.log('Login response:', response)
       
       if (response.success) {
-        const { user, token } = response.data
+        // O ResponseInterceptor do backend está aninhando a resposta
+        const actualData = response.data.data || response.data
+        const { user, token } = actualData
         console.log('Token received:', token ? 'Present' : 'Missing')
         console.log('Token value:', token)
         
