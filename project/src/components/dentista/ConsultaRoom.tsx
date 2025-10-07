@@ -4,7 +4,7 @@ import { StatusBadge } from '@/components/ui/StatusBadge'
 import { useQueueStore } from '@/stores/queue'
 import { useChatStore, initializeConsultationChat, disconnectChat } from '@/stores/chat'
 import { useAuthStore } from '@/stores/auth'
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { webrtcService } from '@/lib/webrtc'
 import { 
   Video, 
@@ -47,6 +47,7 @@ export function ConsultaRoom({ consultaId }: ConsultaRoomProps) {
   const [localVideoRef, setLocalVideoRef] = useState<HTMLVideoElement | null>(null)
   const [remoteVideoRef, setRemoteVideoRef] = useState<HTMLVideoElement | null>(null)
   const [webrtcInitialized, setWebrtcInitialized] = useState(false)
+  const offerCreatedRef = useRef(false)
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -91,8 +92,9 @@ export function ConsultaRoom({ consultaId }: ConsultaRoomProps) {
           localVideoRef.play().catch(e => console.error('Erro ao reproduzir vídeo local:', e))
         }
         
-        // Profissional cria offer (inicia conexão)
-        if (user.role !== 'paciente') {
+        // Profissional cria offer (inicia conexão) - APENAS UMA VEZ
+        if (user.role !== 'paciente' && !offerCreatedRef.current) {
+          offerCreatedRef.current = true
           console.log('👨‍⚕️ Profissional criando offer...')
           // Aguardar um pouco para garantir que o paciente entrou
           setTimeout(async () => {

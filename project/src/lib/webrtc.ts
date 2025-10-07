@@ -115,6 +115,13 @@ export class WebRTCService {
         this.createPeerConnection();
       }
 
+      // Verificar se podemos aceitar offer
+      const state = this.peerConnection?.signalingState;
+      if (state !== 'stable' && state !== 'have-local-offer') {
+        console.log('⏭️ Ignorando offer - estado atual:', state);
+        return;
+      }
+
       try {
         await this.peerConnection!.setRemoteDescription(new RTCSessionDescription(data.offer));
         console.log('✅ Remote description (offer) setada');
@@ -139,6 +146,13 @@ export class WebRTCService {
     // Receber answer
     socket.on('webrtc-answer', async (data: { answer: RTCSessionDescriptionInit; userId: string }) => {
       console.log('📨 Recebendo answer de:', data.userId);
+      
+      // Verificar se estamos esperando um answer
+      const state = this.peerConnection?.signalingState;
+      if (state !== 'have-local-offer') {
+        console.log('⏭️ Ignorando answer - estado atual:', state, '(esperado: have-local-offer)');
+        return;
+      }
       
       try {
         await this.peerConnection!.setRemoteDescription(new RTCSessionDescription(data.answer));
@@ -168,6 +182,13 @@ export class WebRTCService {
     
     if (!this.peerConnection) {
       throw new Error('PeerConnection não inicializado');
+    }
+
+    // Verificar estado antes de criar offer
+    const state = this.peerConnection.signalingState;
+    if (state !== 'stable') {
+      console.log('⏭️ Pulando offer - estado atual:', state);
+      return;
     }
 
     try {

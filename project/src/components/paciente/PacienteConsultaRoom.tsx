@@ -4,7 +4,7 @@ import { StatusBadge } from '@/components/ui/StatusBadge'
 import { useQueueStore } from '@/stores/queue'
 import { useChatStore, initializeConsultationChat, disconnectChat } from '@/stores/chat'
 import { useAuthStore } from '@/stores/auth'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { webrtcService } from '@/lib/webrtc'
 import { 
   Video, 
