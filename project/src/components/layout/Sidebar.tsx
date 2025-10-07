@@ -31,6 +31,16 @@ const menuItems = {
     { icon: Stethoscope, label: 'Consultas Ativas', path: '/dentista/consultas' },
     { icon: Calendar, label: 'Meu Perfil', path: '/dentista/perfil' }
   ],
+  psicologo: [
+    { icon: Clock, label: 'Fila de Atendimento', path: '/dentista' },
+    { icon: Stethoscope, label: 'Consultas Ativas', path: '/dentista/consultas' },
+    { icon: Calendar, label: 'Meu Perfil', path: '/dentista/perfil' }
+  ],
+  medico: [
+    { icon: Clock, label: 'Fila de Atendimento', path: '/dentista' },
+    { icon: Stethoscope, label: 'Consultas Ativas', path: '/dentista/consultas' },
+    { icon: Calendar, label: 'Meu Perfil', path: '/dentista/perfil' }
+  ],
   admin: [
     { icon: BarChart3, label: 'Dashboard', path: '/admin' },
     { icon: Users, label: 'Usuários', path: '/admin/usuarios' },
@@ -64,9 +74,9 @@ export function Sidebar({ isOpen, onClose, userRole, currentPath = '/', onNaviga
 
       {/* Sidebar */}
       <aside className={cn(
-        'fixed left-0 top-0 h-full w-64 bg-gradient-to-b from-primaryDark to-primary text-white transform transition-transform duration-300 ease-in-out z-50 flex flex-col',
+        'fixed left-0 top-0 h-screen w-64 bg-gradient-to-b from-primaryDark to-primary text-white transform transition-transform duration-300 ease-in-out z-50 flex flex-col',
         isOpen ? 'translate-x-0' : '-translate-x-full',
-        'lg:relative lg:translate-x-0 lg:block'
+        'lg:relative lg:translate-x-0 lg:block lg:h-full'
       )}>
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-white/10 flex-shrink-0">

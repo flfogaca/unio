@@ -10,7 +10,7 @@ interface HeaderProps {
 }
 
 export function Header({ onMenuToggle, currentPath = '/', onNavigate }: HeaderProps) {
-  const { user } = useAuthStore()
+  const { user, logout } = useAuthStore()
   const [showProfileMenu, setShowProfileMenu] = useState(false)
   
   const getActiveSection = (path: string) => {
@@ -34,6 +34,26 @@ export function Header({ onMenuToggle, currentPath = '/', onNavigate }: HeaderPr
     } else {
       window.location.hash = path
     }
+    setShowProfileMenu(false) // Close dropdown after navigation
+  }
+
+  const handleLogout = async () => {
+    try {
+      await logout()
+      setShowProfileMenu(false)
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error)
+    }
+  }
+
+  const handleProfileClick = () => {
+    const profilePath = `/perfil`
+    handleNavigation(profilePath)
+  }
+
+  const handleSettingsClick = () => {
+    const settingsPath = `/configuracoes`
+    handleNavigation(settingsPath)
   }
 
   return (
@@ -100,28 +120,38 @@ export function Header({ onMenuToggle, currentPath = '/', onNavigate }: HeaderPr
               </button>
 
               {showProfileMenu && (
-                <div className="absolute right-0 top-12 w-48 bg-white rounded-md shadow-lg py-1 z-50">
-                  <div className="px-4 py-2 text-sm text-gray-700 border-b">
-                    <div className="font-medium">{user?.name}</div>
-                    <div className="text-gray-500">{user?.email}</div>
+                <>
+                  {/* Overlay to close dropdown when clicking outside */}
+                  <div 
+                    className="fixed inset-0 z-40" 
+                    onClick={() => setShowProfileMenu(false)}
+                  />
+                  <div className="absolute right-0 top-12 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200">
+                    <div className="px-4 py-2 text-sm text-gray-700 border-b border-gray-100">
+                      <div className="font-medium">{user?.name}</div>
+                      <div className="text-gray-500 text-xs">{user?.email}</div>
+                    </div>
+                    <button 
+                      onClick={handleProfileClick}
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                    >
+                      Meu Perfil
+                    </button>
+                    <button 
+                      onClick={handleSettingsClick}
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                    >
+                      Configurações
+                    </button>
+                    <hr className="my-1 border-gray-100" />
+                    <button 
+                      onClick={handleLogout}
+                      className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                    >
+                      Sair
+                    </button>
                   </div>
-                  <button 
-                    onClick={() => handleNavigation('/perfil')}
-                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                  >
-                    Meu Perfil
-                  </button>
-                  <button 
-                    onClick={() => handleNavigation('/configuracoes')}
-                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                  >
-                    Configurações
-                  </button>
-                  <hr className="my-1" />
-                  <button className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100">
-                    Sair
-                  </button>
-                </div>
+                </>
               )}
             </div>
           </div>

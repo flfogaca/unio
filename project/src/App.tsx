@@ -16,6 +16,8 @@ import { GerenciarUsuarios } from './components/admin/GerenciarUsuarios'
 import { ConfigurarFila } from './components/admin/ConfigurarFila'
 import { Financeiro } from './components/admin/Financeiro'
 import { Relatorios } from './components/admin/Relatorios'
+import { Perfil } from './components/Perfil'
+import { Configuracoes } from './components/Configuracoes'
 import { useAuthStore } from './stores/auth'
 import './index.css'
 
@@ -119,6 +121,12 @@ function App() {
       case '/admin/relatorios':
         return <Relatorios onBack={() => navigate('/admin')} />
 
+      // Profile and Settings routes
+      case '/perfil':
+        return <Perfil />
+      case '/configuracoes':
+        return <Configuracoes />
+
       default:
         return <PacienteDashboard />
     }
@@ -129,14 +137,14 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-grayBg">
+    <div className="min-h-screen bg-grayBg flex flex-col">
       <Header 
         onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
         currentPath={currentPath}
         onNavigate={navigate}
       />
       
-      <div className="flex">
+      <div className="flex flex-1">
         <Sidebar 
           isOpen={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
@@ -145,7 +153,7 @@ function App() {
           onNavigate={navigate}
         />
         
-        <main className="flex-1 p-6">
+        <main className="flex-1 p-6 overflow-auto">
           {renderContent()}
         </main>
       </div>
