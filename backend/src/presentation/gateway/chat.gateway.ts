@@ -190,5 +190,56 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       message: 'A consulta foi finalizada.',
     });
   }
+
+  // WebRTC Signaling
+  @SubscribeMessage('webrtc-offer')
+  handleWebRTCOffer(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: { consultationId: string; offer: any; userId: string },
+  ) {
+    console.log('📤 WebRTC Offer recebida de:', payload.userId);
+    
+    // Broadcast offer para outros usuários na sala
+    client.to(payload.consultationId).emit('webrtc-offer', {
+      offer: payload.offer,
+      userId: payload.userId,
+    });
+    
+    console.log('📡 Offer enviada para sala:', payload.consultationId);
+    return { success: true };
+  }
+
+  @SubscribeMessage('webrtc-answer')
+  handleWebRTCAnswer(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: { consultationId: string; answer: any; userId: string },
+  ) {
+    console.log('📤 WebRTC Answer recebida de:', payload.userId);
+    
+    // Broadcast answer para outros usuários na sala
+    client.to(payload.consultationId).emit('webrtc-answer', {
+      answer: payload.answer,
+      userId: payload.userId,
+    });
+    
+    console.log('📡 Answer enviada para sala:', payload.consultationId);
+    return { success: true };
+  }
+
+  @SubscribeMessage('webrtc-ice-candidate')
+  handleWebRTCIceCandidate(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: { consultationId: string; candidate: any; userId: string },
+  ) {
+    console.log('🧊 ICE Candidate recebido de:', payload.userId);
+    
+    // Broadcast ICE candidate para outros usuários na sala
+    client.to(payload.consultationId).emit('webrtc-ice-candidate', {
+      candidate: payload.candidate,
+      userId: payload.userId,
+    });
+    
+    return { success: true };
+  }
 }
 

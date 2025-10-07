@@ -43,6 +43,9 @@ export function ConsultaRoom({ consultaId }: ConsultaRoomProps) {
   const [startTime] = useState(new Date())
   const [currentTime, setCurrentTime] = useState(new Date())
   const [chatMessage, setChatMessage] = useState('')
+  const [localVideoRef, setLocalVideoRef] = useState<HTMLVideoElement | null>(null)
+  const [remoteVideoRef, setRemoteVideoRef] = useState<HTMLVideoElement | null>(null)
+  const [webrtcInitialized, setWebrtcInitialized] = useState(false)
 
   useEffect(() => {
     const interval = setInterval(() => {
