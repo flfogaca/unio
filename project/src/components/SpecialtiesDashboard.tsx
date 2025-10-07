@@ -85,27 +85,51 @@ export const SpecialtiesDashboard: React.FC<SpecialtiesDashboardProps> = ({ onSe
     try {
       setLoading(true);
       
-      // Busca dados reais da API
-      const response = await apiClient.getAllSpecialtiesAvailability();
-      if (response.success) {
-        // Combina dados da API com configurações padrão
-        const apiSpecialties = response.data.map((apiSpecialty: any) => ({
-          ...defaultSpecialties.find(s => s.id === apiSpecialty.specialty),
-          queueLength: apiSpecialty.totalInQueue || 0,
-          inProgress: apiSpecialty.totalInProgress || 0,
-          onlineProfessionals: apiSpecialty.onlineProfessionals || 0,
-          estimatedWaitTime: apiSpecialty.estimatedWaitTime || 0,
-        }));
-        setSpecialties(apiSpecialties);
-      } else {
-        // Fallback para dados padrão
-        setSpecialties(defaultSpecialties);
-      }
+      // Usar dados mockados por enquanto
+      const mockSpecialties: Specialty[] = [
+        {
+          id: 'dentista',
+          name: 'Dentista',
+          description: 'Atendimento odontológico completo',
+          icon: 'smile',
+          color: '#06B6D4',
+          features: ['Emergência dentária', 'Consulta odontológica', 'Prevenção'],
+          queueLength: 0,
+          inProgress: 0,
+          onlineProfessionals: 2,
+          estimatedWaitTime: 0,
+        },
+        {
+          id: 'psicologo',
+          name: 'Psicólogo',
+          description: 'Atendimento psicológico com opções de consulta urgente ou agendada',
+          icon: 'brain',
+          color: '#8B5CF6',
+          features: ['Consulta urgente', 'Consulta agendada', 'Acompanhamento'],
+          queueLength: 0,
+          inProgress: 0,
+          onlineProfessionals: 2,
+          estimatedWaitTime: 0,
+        },
+        {
+          id: 'medico-clinico',
+          name: 'Médico Clínico',
+          description: 'Atendimento médico geral',
+          icon: 'stethoscope',
+          color: '#10B981',
+          features: ['Consulta médica', 'Diagnóstico', 'Prescrição'],
+          queueLength: 0,
+          inProgress: 0,
+          onlineProfessionals: 2,
+          estimatedWaitTime: 0,
+        },
+      ];
+      
+      setSpecialties(mockSpecialties);
       setLastUpdated(new Date());
     } catch (error) {
       console.error('Erro ao carregar especialidades:', error);
-      // Fallback para dados padrão
-      setSpecialties(defaultSpecialties);
+      setSpecialties([]);
     } finally {
       setLoading(false);
     }

@@ -43,6 +43,21 @@ function App() {
     return () => window.removeEventListener('hashchange', handleHashChange)
   }, [])
 
+  // Redirecionar usuário para sua rota padrão se estiver na raiz
+  useEffect(() => {
+    if (isAuthenticated && user && currentPath === '/') {
+      const defaultRoute = {
+        paciente: '/paciente',
+        dentista: '/dentista',
+        psicologo: '/dentista', // Psicólogos usam as mesmas rotas dos dentistas
+        medico: '/dentista',    // Médicos usam as mesmas rotas dos dentistas
+        admin: '/admin'
+      }
+      const route = defaultRoute[user.role as keyof typeof defaultRoute] || '/paciente'
+      window.location.hash = route
+    }
+  }, [isAuthenticated, user, currentPath])
+
   const navigate = (path: string) => {
     window.location.hash = path
     setSidebarOpen(false)
@@ -164,20 +179,6 @@ function App() {
     return user?.role || 'paciente'
   }
 
-  // Redirecionar usuário para sua rota padrão se estiver na raiz
-  useEffect(() => {
-    if (isAuthenticated && user && currentPath === '/') {
-      const defaultRoute = {
-        paciente: '/paciente',
-        dentista: '/dentista',
-        psicologo: '/dentista', // Psicólogos usam as mesmas rotas dos dentistas
-        medico: '/dentista',    // Médicos usam as mesmas rotas dos dentistas
-        admin: '/admin'
-      }
-      const route = defaultRoute[user.role as keyof typeof defaultRoute] || '/paciente'
-      navigate(route)
-    }
-  }, [isAuthenticated, user, currentPath, navigate])
 
   // Verificar se o usuário tem acesso à rota atual
   const hasAccessToRoute = (path: string, userRole: string) => {
