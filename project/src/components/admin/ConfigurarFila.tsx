@@ -59,12 +59,9 @@ export function ConfigurarFila({ onBack }: ConfigurarFilaProps) {
       permitirReagendamento: true
     },
     especialidades: [
-      { id: 1, nome: 'Clínica Geral', tempoMedio: 25, cor: '#3B82F6', ativo: true },
-      { id: 2, nome: 'Ortodontia', tempoMedio: 35, cor: '#8B5CF6', ativo: true },
-      { id: 3, nome: 'Endodontia', tempoMedio: 45, cor: '#EF4444', ativo: true },
-      { id: 4, nome: 'Periodontia', tempoMedio: 30, cor: '#10B981', ativo: true },
-      { id: 5, nome: 'Cirurgia Oral', tempoMedio: 40, cor: '#F59E0B', ativo: true },
-      { id: 6, nome: 'Implantodontia', tempoMedio: 60, cor: '#6366F1', ativo: true }
+      { id: 1, nome: 'Dentista', tempoMedio: 25, cor: '#3B82F6', ativo: true },
+      { id: 2, nome: 'Psicólogo', tempoMedio: 35, cor: '#8B5CF6', ativo: true },
+      { id: 3, nome: 'Médico Clínico', tempoMedio: 30, cor: '#10B981', ativo: true }
     ]
   })
 

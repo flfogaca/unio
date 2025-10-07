@@ -5,13 +5,9 @@ import { useState } from 'react'
 import { Upload, ArrowRight, ArrowLeft, Check } from 'lucide-react'
 
 const especialidades = [
-  'Clínica Geral',
-  'Ortodontia', 
-  'Endodontia',
-  'Periodontia',
-  'Cirurgia Oral',
-  'Prótese',
-  'Implantodontia'
+  'Dentista',
+  'Psicólogo',
+  'Médico Clínico'
 ]
 
 const prioridades = [
