@@ -71,6 +71,23 @@ function App() {
   }
 
   const renderContent = () => {
+    const userRole = getUserRole()
+    
+    // Verificar se o usuário tem acesso à rota atual
+    if (!hasAccessToRoute(currentPath, userRole)) {
+      return (
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Acesso Negado</h2>
+            <p className="text-gray-600 mb-4">Você não tem permissão para acessar esta página.</p>
+            <Button onClick={() => navigate('/')}>
+              Voltar ao Dashboard
+            </Button>
+          </div>
+        </div>
+      )
+    }
+
     // Extract consultation ID from path if present
     const consultaMatch = currentPath.match(/^\/dentista\/consulta\/(.+)$/)
     if (consultaMatch) {
@@ -128,12 +145,47 @@ function App() {
         return <Configuracoes />
 
       default:
-        return <PacienteDashboard />
+        // Redirecionar para a rota padrão do usuário
+        const userRole = getUserRole()
+        const defaultRoute = {
+          paciente: '/paciente',
+          dentista: '/dentista',
+          psicologo: '/dentista',
+          medico: '/dentista',
+          admin: '/admin'
+        }
+        const route = defaultRoute[userRole as keyof typeof defaultRoute] || '/paciente'
+        navigate(route)
+        return <div>Redirecionando...</div>
     }
   }
 
   const getUserRole = () => {
     return user?.role || 'paciente'
+  }
+
+  // Redirecionar usuário para sua rota padrão se estiver na raiz
+  useEffect(() => {
+    if (isAuthenticated && user && currentPath === '/') {
+      const defaultRoute = {
+        paciente: '/paciente',
+        dentista: '/dentista',
+        psicologo: '/dentista', // Psicólogos usam as mesmas rotas dos dentistas
+        medico: '/dentista',    // Médicos usam as mesmas rotas dos dentistas
+        admin: '/admin'
+      }
+      const route = defaultRoute[user.role as keyof typeof defaultRoute] || '/paciente'
+      navigate(route)
+    }
+  }, [isAuthenticated, user, currentPath, navigate])
+
+  // Verificar se o usuário tem acesso à rota atual
+  const hasAccessToRoute = (path: string, userRole: string) => {
+    if (path.startsWith('/paciente')) return userRole === 'paciente'
+    if (path.startsWith('/dentista')) return ['dentista', 'psicologo', 'medico'].includes(userRole)
+    if (path.startsWith('/admin')) return userRole === 'admin'
+    if (path.startsWith('/perfil') || path.startsWith('/configuracoes')) return true // Todos podem acessar perfil e configurações
+    return false
   }
 
   return (

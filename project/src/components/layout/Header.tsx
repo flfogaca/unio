@@ -13,20 +13,7 @@ export function Header({ onMenuToggle, currentPath = '/', onNavigate }: HeaderPr
   const { user, logout } = useAuthStore()
   const [showProfileMenu, setShowProfileMenu] = useState(false)
   
-  const getActiveSection = (path: string) => {
-    if (path.startsWith('/paciente')) return 'paciente'
-    if (path.startsWith('/dentista')) return 'dentista'
-    if (path.startsWith('/admin')) return 'admin'
-    return 'home'
-  }
-
-  const activeSection = getActiveSection(currentPath)
-
-  const menuItems = [
-    { key: 'paciente', label: 'Paciente', path: '/paciente' },
-    { key: 'dentista', label: 'Dentista', path: '/dentista' },
-    { key: 'admin', label: 'Admin', path: '/admin' }
-  ]
+  // Removido menu de navegação - cada usuário vê apenas suas funcionalidades
 
   const handleNavigation = (path: string) => {
     if (onNavigate) {
@@ -77,26 +64,7 @@ export function Header({ onMenuToggle, currentPath = '/', onNavigate }: HeaderPr
             </div>
           </div>
 
-          {/* Menu Desktop */}
-          <nav className="hidden lg:flex space-x-8">
-            {menuItems.map((item) => (
-              <button
-                key={item.key}
-                onClick={() => handleNavigation(item.path)}
-                className={cn(
-                  'px-3 py-2 rounded-md text-sm font-medium transition-colors relative',
-                  activeSection === item.key
-                    ? 'text-accent'
-                    : 'text-white hover:text-accent'
-                )}
-              >
-                {item.label}
-                {activeSection === item.key && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent rounded-full" />
-                )}
-              </button>
-            ))}
-          </nav>
+          {/* Menu Desktop - Removido para simplificar navegação */}
 
           {/* Profile e Notificações */}
           <div className="flex items-center space-x-4">
