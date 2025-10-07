@@ -276,6 +276,22 @@ export function PacienteConsultaRoom({ consultaId }: PacienteConsultaRoomProps) 
                 <Button size="sm" onClick={handleSendMessage}>
                   Enviar
                 </Button>
+                <Button 
+                  size="sm" 
+                  variant="secondary"
+                  onClick={() => {
+                    console.log('🧪 Teste: Enviando mensagem de teste')
+                    addMessage({
+                      consultationId: consultaId,
+                      senderId: 'teste',
+                      senderName: 'Teste',
+                      senderType: 'paciente',
+                      message: 'Mensagem de teste do paciente'
+                    })
+                  }}
+                >
+                  Teste
+                </Button>
               </div>
             </CardContent>
           </Card>
