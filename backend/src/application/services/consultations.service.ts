@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { Specialty, ConsultationStatus, ConsultationPriority } from '@/shared/types';
+import { WaitTimeService } from './wait-time.service';
 
 export interface CreateConsultationDto {
   patientId: string;
@@ -24,14 +25,37 @@ export interface FindConsultationsOptions {
 
 @Injectable()
 export class ConsultationsService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    @Inject(forwardRef(() => WaitTimeService))
+    private readonly waitTimeService: WaitTimeService,
+  ) {}
 
   async findAll(options: FindConsultationsOptions = {}) {
-    const { page = 1, limit = 10, status, specialty, patientId, professionalId } = options;
+    const { page = 1, limit = 10, status, specialty, patientId, professionalId, userId, userRole } = options;
     
     const where: any = {};
     if (status) where.status = status;
     if (specialty) where.specialty = specialty;
+    
+    // Filtrar por role do usuário
+    if (userId && userRole) {
+      if (userRole === 'paciente') {
+        // Pacientes veem apenas suas próprias consultas
+        where.patientId = userId;
+      } else if (userRole === 'dentista' || userRole === 'psicologo' || userRole === 'medico') {
+        // Profissionais veem apenas consultas da sua especialidade
+        const specialtyMap = {
+          'dentista': 'dentista',
+          'psicologo': 'psicologo',
+          'medico': 'medico_clinico'
+        };
+        where.specialty = specialtyMap[userRole as keyof typeof specialtyMap];
+      }
+      // Admin não tem filtro adicional (vê todas)
+    }
+    
+    // Permitir filtro específico se fornecido
     if (patientId) where.patientId = patientId;
     if (professionalId) where.professionalId = professionalId;
 
@@ -76,12 +100,15 @@ export class ConsultationsService {
   }
 
   async create(createConsultationDto: CreateConsultationDto) {
+    // Calcular tempo estimado de espera
+    const estimatedWaitTime = await this.waitTimeService.calculateWaitTime(createConsultationDto.specialty);
+    
     const consultation = await this.prismaService.consultation.create({
       data: {
         ...createConsultationDto,
         status: 'em_fila',
         position: 1,
-        estimatedWaitTime: 0,
+        estimatedWaitTime,
       },
       include: {
         patient: true,
