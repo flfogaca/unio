@@ -29,7 +29,15 @@ export function PacienteConsultaRoom({ consultaId }: PacienteConsultaRoomProps) 
   const { items, fetchQueue } = useQueueStore()
   const { user } = useAuthStore()
   const { addMessage } = useChatStore()
-  const chatMessages = useChatStore(state => state.messages[consultaId] || [])
+  const messages = useChatStore(state => state.messages)
+  const [chatMessages, setChatMessages] = useState(messages[consultaId] || [])
+  
+  // Atualizar mensagens quando store mudar
+  useEffect(() => {
+    const newMessages = messages[consultaId] || []
+    console.log('👤 Paciente - Store atualizado:', newMessages.length, 'mensagens')
+    setChatMessages(newMessages)
+  }, [messages, consultaId])
   const [consulta, setConsulta] = useState(() => 
     items.find(item => item.id === consultaId)
   )
