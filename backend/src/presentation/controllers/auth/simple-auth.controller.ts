@@ -57,6 +57,7 @@ export class SimpleAuthController {
   async getProfile(@CurrentUser() user: any) {
     try {
       console.log('User from JWT:', user); // Debug
+      console.log('JWT Secret:', process.env.JWT_SECRET ? 'Set' : 'Not set'); // Debug
       
       const userId = user.sub || user.id;
       if (!userId) {

@@ -22,13 +22,16 @@ class ApiClient {
   ): Promise<ApiResponse<T>> {
     const url = `${this.baseURL}${endpoint}`;
     
+    // Sempre buscar o token atual do localStorage
+    const currentToken = localStorage.getItem('token');
+    
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
       ...options.headers,
     };
 
-    if (this.token) {
-      headers.Authorization = `Bearer ${this.token}`;
+    if (currentToken) {
+      headers.Authorization = `Bearer ${currentToken}`;
     }
 
     try {

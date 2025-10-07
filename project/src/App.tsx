@@ -61,7 +61,8 @@ function App() {
         admin: '/admin'
       }
       const route = defaultRoute[user.role as keyof typeof defaultRoute] || '/paciente'
-      window.location.hash = route
+      // Usar navigate em vez de window.location.hash para evitar URLs estranhas
+      navigate(route)
     }
   }, [isAuthenticated, user, currentPath])
 
@@ -106,7 +107,7 @@ function App() {
         admin: '/admin'
       }
       const route = defaultRoute[userRole as keyof typeof defaultRoute] || '/paciente'
-      window.location.hash = route
+      navigate(route)
       return <div className="flex items-center justify-center h-64">Redirecionando para seu dashboard...</div>
     }
 
