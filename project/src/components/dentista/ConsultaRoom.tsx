@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { useQueueStore } from '@/stores/queue'
-import { useChatStore, initializeConsultationChat } from '@/stores/chat'
+import { useChatStore, initializeConsultationChat, disconnectChat } from '@/stores/chat'
 import { useAuthStore } from '@/stores/auth'
 import { useState, useEffect, useMemo } from 'react'
 import { 
@@ -26,7 +26,7 @@ interface ConsultaRoomProps {
 export function ConsultaRoom({ consultaId }: ConsultaRoomProps) {
   const { items, finalizarConsulta } = useQueueStore()
   const { user } = useAuthStore()
-  const { addMessage } = useChatStore()
+  const { sendMessage } = useChatStore()
   const messages = useChatStore(state => state.messages)
   const chatMessages = useMemo(() => {
     const consultationMessages = messages[consultaId] || []
@@ -52,21 +52,27 @@ export function ConsultaRoom({ consultaId }: ConsultaRoomProps) {
     return () => clearInterval(interval)
   }, [])
 
-  // Inicializar chat da consulta
+  // Inicializar chat WebSocket
   useEffect(() => {
-    initializeConsultationChat(consultaId)
-  }, [consultaId])
-
-  // Polling para mensagens novas
-  useEffect(() => {
-    const { pollMessages } = useChatStore.getState()
+    const token = localStorage.getItem('token')
+    if (user && token) {
+      initializeConsultationChat(
+        consultaId,
+        user.id,
+        user.name || 'Profissional',
+        token
+      ).catch(error => {
+        console.error('❌ Erro ao inicializar chat:', error)
+      })
+    }
     
-    const interval = setInterval(() => {
-      pollMessages(consultaId)
-    }, 2000) // Poll a cada 2 segundos
-    
-    return () => clearInterval(interval)
-  }, [consultaId])
+    // Cleanup ao desmontar
+    return () => {
+      import('@/stores/chat').then(({ disconnectChat }) => {
+        disconnectChat(consultaId)
+      })
+    }
+  }, [consultaId, user])
 
   useEffect(() => {
     const updated = items.find(item => item.id === consultaId)
@@ -104,10 +110,9 @@ export function ConsultaRoom({ consultaId }: ConsultaRoomProps) {
         await finalizarConsulta(consultaId)
         console.log('✅ Consulta finalizada no backend')
         
-        // Limpar chat do store
-        const { clearMessages } = useChatStore.getState()
-        clearMessages(consultaId)
-        console.log('🧹 Chat limpo do store')
+        // Desconectar chat
+        disconnectChat(consultaId)
+        console.log('🔌 Chat desconectado')
         
         alert('Consulta finalizada com sucesso!')
         window.location.hash = '/dentista'
@@ -118,17 +123,12 @@ export function ConsultaRoom({ consultaId }: ConsultaRoomProps) {
     }
   }
 
-  const handleSendMessage = async () => {
+  const handleSendMessage = () => {
     if (chatMessage.trim() && user) {
-      console.log('🦷 Dentista enviando mensagem:', {
-        consultationId: consultaId,
-        senderId: user.id,
-        senderName: user.name || 'Dr. João Silva',
-        message: chatMessage.trim()
-      })
+      console.log('🦷 Dentista enviando mensagem via WebSocket')
       
       try {
-        await addMessage({
+        sendMessage({
           consultationId: consultaId,
           senderId: user.id,
           senderName: user.name || 'Dr. João Silva',
@@ -138,10 +138,8 @@ export function ConsultaRoom({ consultaId }: ConsultaRoomProps) {
         setChatMessage('')
       } catch (error) {
         console.error('❌ Erro ao enviar mensagem:', error)
-        alert('Erro ao enviar mensagem. Tente novamente.')
+        alert('Erro ao enviar mensagem. Verifique a conexão.')
       }
-    } else {
-      console.log('❌ Erro ao enviar mensagem:', { chatMessage: chatMessage.trim(), user: !!user })
     }
   }
 

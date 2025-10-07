@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { useQueueStore } from '@/stores/queue'
-import { useChatStore, initializeConsultationChat } from '@/stores/chat'
+import { useChatStore, initializeConsultationChat, disconnectChat } from '@/stores/chat'
 import { useAuthStore } from '@/stores/auth'
 import { useState, useEffect, useMemo } from 'react'
 import { 
@@ -28,7 +28,7 @@ interface PacienteConsultaRoomProps {
 export function PacienteConsultaRoom({ consultaId }: PacienteConsultaRoomProps) {
   const { items, fetchQueue } = useQueueStore()
   const { user } = useAuthStore()
-  const { addMessage } = useChatStore()
+  const { sendMessage } = useChatStore()
   const messages = useChatStore(state => state.messages)
   const chatMessages = useMemo(() => {
     const consultationMessages = messages[consultaId] || []
@@ -53,21 +53,25 @@ export function PacienteConsultaRoom({ consultaId }: PacienteConsultaRoomProps) 
     return () => clearInterval(interval)
   }, [])
 
-  // Inicializar chat da consulta
+  // Inicializar chat WebSocket
   useEffect(() => {
-    initializeConsultationChat(consultaId)
-  }, [consultaId])
-
-  // Polling para mensagens novas
-  useEffect(() => {
-    const { pollMessages } = useChatStore.getState()
+    const token = localStorage.getItem('token')
+    if (user && token) {
+      initializeConsultationChat(
+        consultaId,
+        user.id,
+        user.name || 'Paciente',
+        token
+      ).catch(error => {
+        console.error('❌ Erro ao inicializar chat:', error)
+      })
+    }
     
-    const interval = setInterval(() => {
-      pollMessages(consultaId)
-    }, 2000) // Poll a cada 2 segundos
-    
-    return () => clearInterval(interval)
-  }, [consultaId])
+    // Cleanup ao desmontar
+    return () => {
+      disconnectChat(consultaId)
+    }
+  }, [consultaId, user])
 
   useEffect(() => {
     const updated = items.find(item => item.id === consultaId)
@@ -106,17 +110,12 @@ export function PacienteConsultaRoom({ consultaId }: PacienteConsultaRoomProps) 
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
   }
 
-  const handleSendMessage = async () => {
+  const handleSendMessage = () => {
     if (chatMessage.trim() && user) {
-      console.log('👤 Paciente enviando mensagem:', {
-        consultationId: consultaId,
-        senderId: user.id,
-        senderName: user.name || 'Você',
-        message: chatMessage.trim()
-      })
+      console.log('👤 Paciente enviando mensagem via WebSocket')
       
       try {
-        await addMessage({
+        sendMessage({
           consultationId: consultaId,
           senderId: user.id,
           senderName: user.name || 'Você',
@@ -126,10 +125,8 @@ export function PacienteConsultaRoom({ consultaId }: PacienteConsultaRoomProps) 
         setChatMessage('')
       } catch (error) {
         console.error('❌ Erro ao enviar mensagem:', error)
-        alert('Erro ao enviar mensagem. Tente novamente.')
+        alert('Erro ao enviar mensagem. Verifique a conexão.')
       }
-    } else {
-      console.log('❌ Erro ao enviar mensagem:', { chatMessage: chatMessage.trim(), user: !!user })
     }
   }
 
@@ -137,10 +134,9 @@ export function PacienteConsultaRoom({ consultaId }: PacienteConsultaRoomProps) 
     if (window.confirm('Tem certeza que deseja sair da consulta?')) {
       console.log('🚪 Paciente saindo da consulta:', consultaId)
       
-      // Limpar chat do store
-      const { clearMessages } = useChatStore.getState()
-      clearMessages(consultaId)
-      console.log('🧹 Chat limpo do store')
+      // Desconectar chat
+      disconnectChat(consultaId)
+      console.log('🔌 Chat desconectado')
       
       alert('Você saiu da consulta. Aguarde o profissional finalizar.')
       window.location.hash = '/paciente'

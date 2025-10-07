@@ -10,16 +10,17 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
     "@tanstack/react-router": "^1.54.0",
-    "zustand": "^4.4.7",
+    "chart.js": "^4.4.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.0.0",
-    "tailwind-merge": "^2.0.0",
     "lucide-react": "^0.292.0",
-    "chart.js": "^4.4.0",
-    "react-chartjs-2": "^5.2.0"
+    "react": "^18.2.0",
+    "react-chartjs-2": "^5.2.0",
+    "react-dom": "^18.2.0",
+    "socket.io-client": "^4.8.1",
+    "tailwind-merge": "^2.0.0",
+    "zustand": "^4.4.7"
   },
   "devDependencies": {
     "@types/react": "^18.2.43",

@@ -3,10 +3,13 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { VideoGateway } from './video.gateway';
 import { QueueGateway } from './queue.gateway';
+import { ChatGateway } from './chat.gateway';
+import { ChatModule } from '../controllers/chat/chat.module';
 
 @Module({
   imports: [
     ConfigModule,
+    ChatModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
@@ -18,7 +21,7 @@ import { QueueGateway } from './queue.gateway';
       inject: [ConfigService],
     }),
   ],
-  providers: [VideoGateway, QueueGateway],
-  exports: [VideoGateway, QueueGateway],
+  providers: [VideoGateway, QueueGateway, ChatGateway],
+  exports: [VideoGateway, QueueGateway, ChatGateway],
 })
 export class GatewayModule {}
