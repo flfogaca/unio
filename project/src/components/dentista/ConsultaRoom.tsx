@@ -2,6 +2,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { useQueueStore } from '@/stores/queue'
+import { useChatStore, initializeConsultationChat } from '@/stores/chat'
+import { useAuthStore } from '@/stores/auth'
 import { useState, useEffect } from 'react'
 import { 
   Video, 
@@ -23,6 +25,8 @@ interface ConsultaRoomProps {
 
 export function ConsultaRoom({ consultaId }: ConsultaRoomProps) {
   const { items, finalizarConsulta } = useQueueStore()
+  const { user } = useAuthStore()
+  const { addMessage, getMessages } = useChatStore()
   const [consulta, setConsulta] = useState(() => 
     items.find(item => item.id === consultaId)
   )
@@ -33,9 +37,7 @@ export function ConsultaRoom({ consultaId }: ConsultaRoomProps) {
   const [startTime] = useState(new Date())
   const [currentTime, setCurrentTime] = useState(new Date())
   const [chatMessage, setChatMessage] = useState('')
-  const [chatMessages, setChatMessages] = useState<Array<{id: string, sender: string, message: string, timestamp: Date}>>([
-    { id: '1', sender: 'Sistema', message: 'Consulta iniciada. Conectando com o paciente.', timestamp: new Date() }
-  ])
+  const [chatMessages, setChatMessages] = useState(getMessages(consultaId))
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -44,6 +46,22 @@ export function ConsultaRoom({ consultaId }: ConsultaRoomProps) {
     
     return () => clearInterval(interval)
   }, [])
+
+  // Inicializar chat da consulta
+  useEffect(() => {
+    initializeConsultationChat(consultaId)
+    setChatMessages(getMessages(consultaId))
+  }, [consultaId, getMessages])
+
+  // Sincronizar mensagens do chat
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const messages = getMessages(consultaId)
+      setChatMessages(messages)
+    }, 1000) // Atualiza a cada segundo
+    
+    return () => clearInterval(interval)
+  }, [consultaId, getMessages])
 
   useEffect(() => {
     const updated = items.find(item => item.id === consultaId)
@@ -81,14 +99,14 @@ export function ConsultaRoom({ consultaId }: ConsultaRoomProps) {
   }
 
   const handleSendMessage = () => {
-    if (chatMessage.trim()) {
-      const newMessage = {
-        id: Date.now().toString(),
-        sender: 'Dr. João Silva', // Nome do profissional
-        message: chatMessage.trim(),
-        timestamp: new Date()
-      }
-      setChatMessages(prev => [...prev, newMessage])
+    if (chatMessage.trim() && user) {
+      addMessage({
+        consultationId: consultaId,
+        senderId: user.id,
+        senderName: user.name || 'Dr. João Silva',
+        senderType: 'profissional',
+        message: chatMessage.trim()
+      })
       setChatMessage('')
     }
   }
@@ -200,14 +218,14 @@ export function ConsultaRoom({ consultaId }: ConsultaRoomProps) {
               <div className="space-y-3 h-64 overflow-y-auto">
                 {chatMessages.map((msg) => (
                   <div key={msg.id} className={`p-2 rounded-lg ${
-                    msg.sender === 'Dr. João Silva' 
+                    msg.senderType === 'profissional' 
                       ? 'bg-accent/10 ml-4' 
-                      : msg.sender === 'Sistema'
+                      : msg.senderType === 'sistema'
                       ? 'bg-yellow-50 text-yellow-800 text-center'
                       : 'bg-gray-100 mr-4'
                   }`}>
                     <div className="text-xs font-medium text-gray-600 mb-1">
-                      {msg.sender} - {msg.timestamp.toLocaleTimeString()}
+                      {msg.senderName} - {msg.timestamp.toLocaleTimeString()}
                     </div>
                     <div className="text-sm">{msg.message}</div>
                   </div>
