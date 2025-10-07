@@ -4,7 +4,7 @@ import { StatusBadge } from '@/components/ui/StatusBadge'
 import { useQueueStore } from '@/stores/queue'
 import { useChatStore, initializeConsultationChat } from '@/stores/chat'
 import { useAuthStore } from '@/stores/auth'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { 
   Video, 
   VideoOff, 
@@ -28,13 +28,10 @@ export function ConsultaRoom({ consultaId }: ConsultaRoomProps) {
   const { user } = useAuthStore()
   const { addMessage } = useChatStore()
   const messages = useChatStore(state => state.messages)
-  const [chatMessages, setChatMessages] = useState(messages[consultaId] || [])
-  
-  // Atualizar mensagens quando store mudar
-  useEffect(() => {
-    const newMessages = messages[consultaId] || []
-    console.log('🦷 Dentista - Store atualizado:', newMessages.length, 'mensagens')
-    setChatMessages(newMessages)
+  const chatMessages = useMemo(() => {
+    const consultationMessages = messages[consultaId] || []
+    console.log('🦷 Dentista - Store atualizado:', consultationMessages.length, 'mensagens')
+    return consultationMessages
   }, [messages, consultaId])
   const [consulta, setConsulta] = useState(() => 
     items.find(item => item.id === consultaId)
@@ -231,23 +228,20 @@ export function ConsultaRoom({ consultaId }: ConsultaRoomProps) {
                     Nenhuma mensagem ainda
                   </div>
                 ) : (
-                  chatMessages.map((msg) => {
-                    console.log('🦷 Renderizando mensagem:', msg)
-                    return (
-                      <div key={msg.id} className={`p-2 rounded-lg ${
-                        msg.senderType === 'profissional' 
-                          ? 'bg-accent/10 ml-4' 
-                          : msg.senderType === 'sistema'
-                          ? 'bg-yellow-50 text-yellow-800 text-center'
-                          : 'bg-gray-100 mr-4'
-                      }`}>
-                        <div className="text-xs font-medium text-gray-600 mb-1">
-                          {msg.senderName} - {msg.timestamp.toLocaleTimeString()}
-                        </div>
-                        <div className="text-sm">{msg.message}</div>
+                  chatMessages.map((msg) => (
+                    <div key={msg.id} className={`p-2 rounded-lg ${
+                      msg.senderType === 'profissional' 
+                        ? 'bg-accent/10 ml-4' 
+                        : msg.senderType === 'sistema'
+                        ? 'bg-yellow-50 text-yellow-800 text-center'
+                        : 'bg-gray-100 mr-4'
+                    }`}>
+                      <div className="text-xs font-medium text-gray-600 mb-1">
+                        {msg.senderName} - {msg.timestamp.toLocaleTimeString()}
                       </div>
-                    )
-                  })
+                      <div className="text-sm">{msg.message}</div>
+                    </div>
+                  ))
                 )}
               </div>
               <div className="flex gap-2 mt-3">
@@ -277,18 +271,6 @@ export function ConsultaRoom({ consultaId }: ConsultaRoomProps) {
                   }}
                 >
                   Teste
-                </Button>
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  onClick={() => {
-                    console.log('🔄 Forçando atualização de mensagens')
-                    const currentMessages = messages[consultaId] || []
-                    console.log('📋 Mensagens atuais no store:', currentMessages)
-                    setChatMessages([...currentMessages])
-                  }}
-                >
-                  Atualizar
                 </Button>
               </div>
             </CardContent>
