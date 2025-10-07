@@ -79,11 +79,20 @@ export function FilaAtendimento() {
     }
   ]
 
-  const handleAssumeConsulta = (itemId: string) => {
+  const handleAssumeConsulta = async (itemId: string) => {
     if (user?.id) {
-      assumeConsulta(itemId, user.id)
-      // Redirecionar para a consulta
-      window.location.hash = `/dentista/consulta/${itemId}`
+      console.log('🦷 Dentista assumindo consulta:', { itemId, userId: user.id })
+      try {
+        await assumeConsulta(itemId, user.id)
+        console.log('✅ Consulta assumida com sucesso, redirecionando...')
+        // Redirecionar para a consulta
+        window.location.hash = `/dentista/consulta/${itemId}`
+      } catch (error) {
+        console.error('❌ Erro ao assumir consulta:', error)
+        alert('Erro ao assumir consulta. Tente novamente.')
+      }
+    } else {
+      console.error('❌ Usuário não encontrado')
     }
   }
 

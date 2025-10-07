@@ -39,16 +39,22 @@ function App() {
     }
   }, [isAuthenticated, user, checkAuth])
 
-  // Simple router based on pathname
+  // Simple router based on hash and pathname
   useEffect(() => {
     const handleLocationChange = () => {
-      setCurrentPath(window.location.pathname || '/')
+      // Priorizar hash, depois pathname
+      const hash = window.location.hash.substring(1) // Remove o #
+      setCurrentPath(hash || window.location.pathname || '/')
     }
 
     window.addEventListener('popstate', handleLocationChange)
+    window.addEventListener('hashchange', handleLocationChange)
     handleLocationChange() // Set initial path
 
-    return () => window.removeEventListener('popstate', handleLocationChange)
+    return () => {
+      window.removeEventListener('popstate', handleLocationChange)
+      window.removeEventListener('hashchange', handleLocationChange)
+    }
   }, [])
 
   // Redirecionar usuário para sua rota padrão se estiver na raiz
@@ -98,6 +104,8 @@ function App() {
   const renderContent = () => {
     const userRole = getUserRole()
     
+    console.log('🔍 Renderizando conteúdo:', { currentPath, userRole })
+    
     // Verificar se o usuário tem acesso à rota atual
     if (!hasAccessToRoute(currentPath, userRole)) {
       // Redirecionar automaticamente para o dashboard do usuário
@@ -116,12 +124,14 @@ function App() {
     // Extract consultation ID from path if present
     const consultaMatch = currentPath.match(/^\/dentista\/consulta\/(.+)$/)
     if (consultaMatch) {
+      console.log('🦷 Renderizando ConsultaRoom para dentista:', consultaMatch[1])
       return <ConsultaRoom consultaId={consultaMatch[1]} />
     }
 
     // Extract patient consultation ID from path if present
     const pacienteConsultaMatch = currentPath.match(/^\/paciente\/consulta\/(.+)$/)
     if (pacienteConsultaMatch) {
+      console.log('👤 Renderizando PacienteConsultaRoom para paciente:', pacienteConsultaMatch[1])
       return <PacienteConsultaRoom consultaId={pacienteConsultaMatch[1]} />
     }
 
