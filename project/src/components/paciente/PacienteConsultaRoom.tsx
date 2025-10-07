@@ -288,6 +288,18 @@ export function PacienteConsultaRoom({ consultaId }: PacienteConsultaRoomProps) 
                 >
                   Teste
                 </Button>
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => {
+                    console.log('🔄 Forçando atualização de mensagens')
+                    const currentMessages = messages[consultaId] || []
+                    console.log('📋 Mensagens atuais no store:', currentMessages)
+                    setChatMessages([...currentMessages])
+                  }}
+                >
+                  Atualizar
+                </Button>
               </div>
             </CardContent>
           </Card>
