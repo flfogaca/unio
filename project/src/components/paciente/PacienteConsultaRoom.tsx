@@ -35,7 +35,7 @@ export function PacienteConsultaRoom({ consultaId }: PacienteConsultaRoomProps) 
   const [currentTime, setCurrentTime] = useState(new Date())
   const [chatMessage, setChatMessage] = useState('')
   const [chatMessages, setChatMessages] = useState<Array<{id: string, sender: string, message: string, timestamp: Date}>>([
-    { id: '1', sender: 'Sistema', message: 'Consulta iniciada. Aguarde o profissional.', timestamp: new Date() }
+    { id: '1', sender: 'Sistema', message: 'Consulta iniciada. Conectando com o profissional.', timestamp: new Date() }
   ])
 
   useEffect(() => {

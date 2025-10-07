@@ -13,7 +13,8 @@ import {
   User,
   Camera,
   Share,
-  Calendar
+  Calendar,
+  MessageSquare
 } from 'lucide-react'
 
 interface ConsultaRoomProps {
@@ -31,6 +32,10 @@ export function ConsultaRoom({ consultaId }: ConsultaRoomProps) {
   const [anotacoes, setAnotacoes] = useState('')
   const [startTime] = useState(new Date())
   const [currentTime, setCurrentTime] = useState(new Date())
+  const [chatMessage, setChatMessage] = useState('')
+  const [chatMessages, setChatMessages] = useState<Array<{id: string, sender: string, message: string, timestamp: Date}>>([
+    { id: '1', sender: 'Sistema', message: 'Consulta iniciada. Conectando com o paciente.', timestamp: new Date() }
+  ])
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -72,6 +77,19 @@ export function ConsultaRoom({ consultaId }: ConsultaRoomProps) {
       finalizarConsulta(consultaId)
       alert('Consulta finalizada com sucesso!')
       window.location.hash = '/dentista'
+    }
+  }
+
+  const handleSendMessage = () => {
+    if (chatMessage.trim()) {
+      const newMessage = {
+        id: Date.now().toString(),
+        sender: 'Dr. João Silva', // Nome do profissional
+        message: chatMessage.trim(),
+        timestamp: new Date()
+      }
+      setChatMessages(prev => [...prev, newMessage])
+      setChatMessage('')
     }
   }
 
@@ -170,6 +188,47 @@ export function ConsultaRoom({ consultaId }: ConsultaRoomProps) {
 
         {/* Side Panel */}
         <div className="space-y-6">
+          {/* Chat */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MessageSquare className="h-5 w-5 text-accent" />
+                Chat
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3 h-64 overflow-y-auto">
+                {chatMessages.map((msg) => (
+                  <div key={msg.id} className={`p-2 rounded-lg ${
+                    msg.sender === 'Dr. João Silva' 
+                      ? 'bg-accent/10 ml-4' 
+                      : msg.sender === 'Sistema'
+                      ? 'bg-yellow-50 text-yellow-800 text-center'
+                      : 'bg-gray-100 mr-4'
+                  }`}>
+                    <div className="text-xs font-medium text-gray-600 mb-1">
+                      {msg.sender} - {msg.timestamp.toLocaleTimeString()}
+                    </div>
+                    <div className="text-sm">{msg.message}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-2 mt-3">
+                <input
+                  type="text"
+                  value={chatMessage}
+                  onChange={(e) => setChatMessage(e.target.value)}
+                  placeholder="Digite sua mensagem..."
+                  className="flex-1 p-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-accent focus:border-transparent"
+                  onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                />
+                <Button size="sm" onClick={handleSendMessage}>
+                  Enviar
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Patient Info */}
           <Card>
             <CardHeader>
