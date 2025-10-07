@@ -15,6 +15,8 @@ interface ChatState {
   addMessage: (message: Omit<ChatMessage, 'id' | 'timestamp'>) => void
   getMessages: (consultationId: string) => ChatMessage[]
   clearMessages: (consultationId: string) => void
+  // Forçar re-render quando mensagens mudam
+  forceUpdate: () => void
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -52,6 +54,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
         [consultationId]: []
       }
     }))
+  },
+
+  forceUpdate: () => {
+    set(state => ({ ...state }))
   }
 }))
 

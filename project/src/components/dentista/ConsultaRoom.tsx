@@ -26,7 +26,8 @@ interface ConsultaRoomProps {
 export function ConsultaRoom({ consultaId }: ConsultaRoomProps) {
   const { items, finalizarConsulta } = useQueueStore()
   const { user } = useAuthStore()
-  const { addMessage, getMessages } = useChatStore()
+  const { addMessage } = useChatStore()
+  const chatMessages = useChatStore(state => state.messages[consultaId] || [])
   const [consulta, setConsulta] = useState(() => 
     items.find(item => item.id === consultaId)
   )
@@ -37,7 +38,6 @@ export function ConsultaRoom({ consultaId }: ConsultaRoomProps) {
   const [startTime] = useState(new Date())
   const [currentTime, setCurrentTime] = useState(new Date())
   const [chatMessage, setChatMessage] = useState('')
-  const [chatMessages, setChatMessages] = useState(getMessages(consultaId))
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -50,19 +50,7 @@ export function ConsultaRoom({ consultaId }: ConsultaRoomProps) {
   // Inicializar chat da consulta
   useEffect(() => {
     initializeConsultationChat(consultaId)
-    setChatMessages(getMessages(consultaId))
-  }, [consultaId, getMessages])
-
-  // Sincronizar mensagens do chat
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const messages = getMessages(consultaId)
-      console.log('🔄 Dentista sincronizando mensagens:', messages.length, 'mensagens')
-      setChatMessages(messages)
-    }, 1000) // Atualiza a cada segundo
-    
-    return () => clearInterval(interval)
-  }, [consultaId, getMessages])
+  }, [consultaId])
 
   useEffect(() => {
     const updated = items.find(item => item.id === consultaId)

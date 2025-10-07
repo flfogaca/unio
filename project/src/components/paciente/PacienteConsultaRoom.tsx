@@ -28,7 +28,8 @@ interface PacienteConsultaRoomProps {
 export function PacienteConsultaRoom({ consultaId }: PacienteConsultaRoomProps) {
   const { items, fetchQueue } = useQueueStore()
   const { user } = useAuthStore()
-  const { addMessage, getMessages } = useChatStore()
+  const { addMessage } = useChatStore()
+  const chatMessages = useChatStore(state => state.messages[consultaId] || [])
   const [consulta, setConsulta] = useState(() => 
     items.find(item => item.id === consultaId)
   )
@@ -38,7 +39,6 @@ export function PacienteConsultaRoom({ consultaId }: PacienteConsultaRoomProps) 
   const [startTime] = useState(new Date())
   const [currentTime, setCurrentTime] = useState(new Date())
   const [chatMessage, setChatMessage] = useState('')
-  const [chatMessages, setChatMessages] = useState(getMessages(consultaId))
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -51,19 +51,7 @@ export function PacienteConsultaRoom({ consultaId }: PacienteConsultaRoomProps) 
   // Inicializar chat da consulta
   useEffect(() => {
     initializeConsultationChat(consultaId)
-    setChatMessages(getMessages(consultaId))
-  }, [consultaId, getMessages])
-
-  // Sincronizar mensagens do chat
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const messages = getMessages(consultaId)
-      console.log('🔄 Paciente sincronizando mensagens:', messages.length, 'mensagens')
-      setChatMessages(messages)
-    }, 1000) // Atualiza a cada segundo
-    
-    return () => clearInterval(interval)
-  }, [consultaId, getMessages])
+  }, [consultaId])
 
   useEffect(() => {
     const updated = items.find(item => item.id === consultaId)
