@@ -158,7 +158,7 @@ export function HistoricoConsultas() {
       </div>
 
       {/* Estatísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -177,48 +177,13 @@ export function HistoricoConsultas() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Avaliação Média</p>
-                <p className="text-2xl font-bold text-primaryDark">
-                  {consultasHistorico.length > 0 
-                    ? (consultasHistorico.reduce((acc, c) => acc + c.avaliacao, 0) / consultasHistorico.length).toFixed(1)
-                    : '0.0'
-                  }
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-yellow-500 rounded-lg flex items-center justify-center">
-                <Star className="h-6 w-6 text-white" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
                 <p className="text-sm font-medium text-gray-600">Tempo Total</p>
                 <p className="text-2xl font-bold text-primaryDark">
-                  {consultasHistorico.reduce((acc, c) => acc + parseInt(c.duracao), 0)}min
+                  {consultasHistorico.reduce((acc, c) => acc + parseInt(c.duracao), 0)} min
                 </p>
               </div>
               <div className="w-12 h-12 bg-accent rounded-lg flex items-center justify-center">
                 <Clock className="h-6 w-6 text-white" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Valor Total</p>
-                <p className="text-2xl font-bold text-primaryDark">
-                  R$ {consultasHistorico.reduce((acc, c) => acc + c.valor, 0).toFixed(0)}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-purple-500 rounded-lg flex items-center justify-center">
-                <FileText className="h-6 w-6 text-white" />
               </div>
             </div>
           </CardContent>
