@@ -2,7 +2,9 @@ import { Card, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { DetalhesConsulta } from './DetalhesConsulta'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useQueueStore } from '@/stores/queue'
+import { useAuthStore } from '@/stores/auth'
 import { 
   Calendar, 
   Clock, 
@@ -15,7 +17,8 @@ import {
   ChevronDown,
   Eye,
   MessageSquare,
-  ArrowRight
+  ArrowRight,
+  Loader2
 } from 'lucide-react'
 
 export function HistoricoConsultas() {
@@ -24,6 +27,26 @@ export function HistoricoConsultas() {
   const [busca, setBusca] = useState('')
   const [showFiltros, setShowFiltros] = useState(false)
   const [consultaSelecionada, setConsultaSelecionada] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  
+  const { items, fetchQueue } = useQueueStore()
+  const { user } = useAuthStore()
+
+  // Buscar consultas ao montar o componente
+  useEffect(() => {
+    const loadConsultas = async () => {
+      setIsLoading(true)
+      try {
+        await fetchQueue()
+      } catch (error) {
+        console.error('Erro ao carregar histórico:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    
+    loadConsultas()
+  }, [fetchQueue])
 
   // Se uma consulta está selecionada, mostrar os detalhes
   if (consultaSelecionada) {
@@ -35,89 +58,46 @@ export function HistoricoConsultas() {
     )
   }
 
-  // Mock de dados mais completos para o histórico
-  const consultasHistorico = [
-    {
-      id: 'h1',
-      data: new Date('2024-01-15'),
-      dentista: 'Dr. João Silva',
-      especialidade: 'Dentista',
-      status: 'finalizado' as const,
-      duracao: '25 min',
-      descricao: 'Consulta de rotina - limpeza e avaliação geral',
-      avaliacao: 5,
-      prescricao: true,
-      receita: 'Prescrição de analgésico para sensibilidade',
-      observacoes: 'Paciente apresentou leve sensibilidade. Recomendado uso de pasta específica.',
-      proximaConsulta: new Date('2024-04-15'),
-      arquivos: ['receita_15012024.pdf', 'exame_panoramico.jpg'],
-      valor: 430.00
-    },
-    {
-      id: 'h2',
-      data: new Date('2024-01-08'),
-      dentista: 'Dra. Maria Santos',
-      especialidade: 'Psicólogo',
-      status: 'finalizado' as const,
-      duracao: '30 min',
-      descricao: 'Avaliação para aparelho ortodôntico',
-      avaliacao: 4,
-      prescricao: false,
-      receita: null,
-      observacoes: 'Necessário aparelho fixo. Orçamento enviado por email.',
-      proximaConsulta: new Date('2024-02-08'),
-      arquivos: ['orcamento_ortodontia.pdf', 'moldagem_digital.stl'],
-      valor: 180.00
-    },
-    {
-      id: 'h3',
-      data: new Date('2023-12-20'),
-      dentista: 'Dr. Carlos Oliveira',
-      especialidade: 'Médico Clínico',
-      status: 'finalizado' as const,
-      duracao: '45 min',
-      descricao: 'Tratamento de canal - dente 16',
-      avaliacao: 5,
-      prescricao: true,
-      receita: 'Antibiótico e anti-inflamatório pós-procedimento',
-      observacoes: 'Tratamento realizado com sucesso. Retorno em 7 dias para avaliação.',
-      proximaConsulta: new Date('2023-12-27'),
-      arquivos: ['receita_20122023.pdf', 'raio_x_pos_tratamento.jpg'],
-      valor: 650.00
-    },
-    {
-      id: 'h4',
-      data: new Date('2023-11-10'),
-      dentista: 'Dra. Ana Costa',
-      especialidade: 'Dentista',
-      status: 'finalizado' as const,
-      duracao: '35 min',
-      descricao: 'Tratamento de gengivite',
-      avaliacao: 4,
-      prescricao: true,
-      receita: 'Enxaguante bucal específico e orientações de higiene',
-      observacoes: 'Melhora significativa da inflamação. Continuar cuidados em casa.',
-      proximaConsulta: null,
-      arquivos: ['orientacoes_higiene.pdf'],
-      valor: 220.00
-    },
-    {
-      id: 'h5',
-      data: new Date('2023-10-05'),
-      dentista: 'Dr. Pedro Lima',
-      especialidade: 'Psicólogo',
-      status: 'finalizado' as const,
-      duracao: '20 min',
-      descricao: 'Extração de dente do siso',
-      avaliacao: 3,
-      prescricao: true,
-      receita: 'Analgésico e anti-inflamatório pós-cirúrgico',
-      observacoes: 'Procedimento sem complicações. Repouso recomendado por 48h.',
-      proximaConsulta: new Date('2023-10-12'),
-      arquivos: ['receita_05102023.pdf', 'orientacoes_pos_cirurgia.pdf'],
-      valor: 380.00
-    }
-  ]
+  // Converter dados reais para o formato esperado
+  const consultasHistorico = items
+    .filter(item => item.pacienteId === user?.id) // Apenas consultas do paciente logado
+    .map(item => {
+      const startedAt = item.startedAt ? new Date(item.startedAt) : null
+      const finishedAt = item.finishedAt ? new Date(item.finishedAt) : null
+      
+      // Calcular duração
+      let duracao = '0 min'
+      if (startedAt && finishedAt) {
+        const diffMs = finishedAt.getTime() - startedAt.getTime()
+        const diffMins = Math.round(diffMs / 60000)
+        duracao = `${diffMins} min`
+      }
+      
+      // Mapear especialidade para nome legível
+      const especialidadeMap: Record<string, string> = {
+        'dentista': 'Dentista',
+        'psicologo': 'Psicólogo',
+        'medico_clinico': 'Médico Clínico'
+      }
+      
+      return {
+        id: item.id,
+        data: new Date(item.createdAt),
+        dentista: item.profissionalNome || 'Profissional não atribuído',
+        especialidade: especialidadeMap[item.especialidade] || item.especialidade,
+        status: item.status,
+        duracao,
+        descricao: item.descricao || item.reason || 'Consulta',
+        avaliacao: 0, // TODO: Implementar sistema de avaliação
+        prescricao: !!item.notes,
+        receita: item.notes || null,
+        observacoes: item.notes || '',
+        proximaConsulta: null,
+        arquivos: [],
+        valor: 0 // TODO: Implementar valores
+      }
+    })
+    .sort((a, b) => b.data.getTime() - a.data.getTime()) // Mais recentes primeiro
 
   // Filtrar consultas
   const consultasFiltradas = consultasHistorico.filter(consulta => {
@@ -148,6 +128,18 @@ export function HistoricoConsultas() {
 
   const handleVerDetalhes = (consultaId: string) => {
     setConsultaSelecionada(consultaId)
+  }
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 text-accent animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Carregando histórico...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -187,7 +179,10 @@ export function HistoricoConsultas() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Avaliação Média</p>
                 <p className="text-2xl font-bold text-primaryDark">
-                  {(consultasHistorico.reduce((acc, c) => acc + c.avaliacao, 0) / consultasHistorico.length).toFixed(1)}
+                  {consultasHistorico.length > 0 
+                    ? (consultasHistorico.reduce((acc, c) => acc + c.avaliacao, 0) / consultasHistorico.length).toFixed(1)
+                    : '0.0'
+                  }
                 </p>
               </div>
               <div className="w-12 h-12 bg-yellow-500 rounded-lg flex items-center justify-center">
