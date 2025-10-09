@@ -29,15 +29,15 @@ export function HistoricoConsultas() {
   const [consultaSelecionada, setConsultaSelecionada] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   
-  const { items, fetchQueue } = useQueueStore()
+  const { items, fetchAllConsultations } = useQueueStore()
   const { user } = useAuthStore()
 
-  // Buscar consultas ao montar o componente
+  // Buscar TODAS consultas (incluindo finalizadas) ao montar o componente
   useEffect(() => {
     const loadConsultas = async () => {
       setIsLoading(true)
       try {
-        await fetchQueue()
+        await fetchAllConsultations()
       } catch (error) {
         console.error('Erro ao carregar histórico:', error)
       } finally {
@@ -46,7 +46,7 @@ export function HistoricoConsultas() {
     }
     
     loadConsultas()
-  }, [fetchQueue])
+  }, [fetchAllConsultations])
 
   // Se uma consulta está selecionada, mostrar os detalhes
   if (consultaSelecionada) {
@@ -59,8 +59,16 @@ export function HistoricoConsultas() {
   }
 
   // Converter dados reais para o formato esperado
+  console.log('🔍 DEBUG Histórico:')
+  console.log('  - Total items do store:', items.length)
+  console.log('  - User ID:', user?.id)
+  console.log('  - Items completos:', items)
+  
   const consultasHistorico = items
-    .filter(item => item.pacienteId === user?.id) // Apenas consultas do paciente logado
+    .filter(item => {
+      console.log(`  - Checando item ${item.id}: pacienteId=${item.pacienteId} vs user=${user?.id}`)
+      return item.pacienteId === user?.id
+    }) // Apenas consultas do paciente logado
     .map(item => {
       const startedAt = item.startedAt ? new Date(item.startedAt) : null
       const finishedAt = item.finishedAt ? new Date(item.finishedAt) : null

@@ -14,7 +14,14 @@ export interface QueueItem {
   tempoEstimado: number
   dentistaId?: string
   dentistaNome?: string
+  profissionalId?: string
+  profissionalNome?: string
   imagem?: string
+  reason?: string
+  notes?: string
+  startedAt?: string
+  finishedAt?: string
+  createdAt?: string
 }
 
 interface QueueState {
@@ -26,6 +33,7 @@ interface QueueState {
   finalizarConsulta: (itemId: string, notes?: string) => Promise<void>
   updatePositions: () => Promise<void>
   fetchQueue: () => Promise<void>
+  fetchAllConsultations: () => Promise<void>
   clearError: () => void
 }
 
@@ -198,6 +206,57 @@ export const useQueueStore = create<QueueState>((set, get) => ({
       }
     } catch (error) {
       console.error('Error updating positions:', error)
+    }
+  },
+
+  fetchAllConsultations: async () => {
+    try {
+      set({ isLoading: true, error: null })
+      const response = await apiClient.getConsultations()
+      
+      if (response.success) {
+        console.log('📋 Buscando TODAS consultas (incluindo finalizadas)')
+        const consultationsList = response.data.data || response.data || []
+        
+        // Mapear status do backend para o formato do frontend
+        const statusMap: Record<string, 'em-fila' | 'em-atendimento' | 'finalizado' | 'cancelado'> = {
+          'em_fila': 'em-fila',
+          'em_atendimento': 'em-atendimento',
+          'finalizado': 'finalizado',
+          'cancelado': 'cancelado'
+        }
+        
+        const allItems = consultationsList.map((c: any) => ({
+          id: c.id,
+          pacienteId: c.patientId,
+          pacienteNome: c.patient?.name || 'Paciente',
+          especialidade: c.specialty,
+          descricao: c.description || c.reason,
+          status: statusMap[c.status] || c.status,
+          prioridade: c.priority,
+          criadoEm: new Date(c.createdAt),
+          posicao: c.position || 0,
+          tempoEstimado: c.estimatedWaitTime || 0,
+          dentistaId: c.professionalId,
+          dentistaNome: c.professional?.name,
+          profissionalNome: c.professional?.name,
+          profissionalId: c.professionalId,
+          reason: c.reason,
+          notes: c.notes,
+          startedAt: c.startedAt,
+          finishedAt: c.finishedAt,
+          createdAt: c.createdAt
+        }))
+        
+        console.log(`✅ Total de consultas carregadas: ${allItems.length}`)
+        set({ items: allItems, isLoading: false })
+      }
+    } catch (error: any) {
+      console.error('Erro ao buscar todas consultas:', error)
+      set({ 
+        error: error.message || 'Erro ao carregar histórico',
+        isLoading: false 
+      })
     }
   },
 
