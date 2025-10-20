@@ -65,7 +65,7 @@ export const useQueueStore = create<QueueState>((set, get) => ({
       const response = await apiClient.createConsultation(consultationData)
       
       if (response.success) {
-        const consultation = response.data
+        const consultation = response.data as any as any
         const queueItem: QueueItem = {
           id: consultation.id,
           pacienteId: consultation.patientId,
@@ -102,7 +102,7 @@ export const useQueueStore = create<QueueState>((set, get) => ({
     }
   },
 
-  assumeConsulta: async (itemId, dentistaId) => {
+  assumeConsulta: async (itemId) => {
     try {
       set({ isLoading: true, error: null })
       
@@ -111,7 +111,7 @@ export const useQueueStore = create<QueueState>((set, get) => ({
       
       if (response.success) {
         // Backend retorna a consulta atualizada
-        const consultation = response.data
+        const consultation = response.data as any
         
         set(state => ({
           items: state.items.map(item =>
@@ -186,7 +186,7 @@ export const useQueueStore = create<QueueState>((set, get) => ({
       
       if (response.success) {
         // A resposta tem estrutura paginada: { data: { data: [], total, ... } }
-        const consultationsList = response.data.data || response.data || []
+        const consultationsList = (response.data as any).data || response.data || []
         
         const queueItems = consultationsList
           .filter((c: any) => c.status === 'em_fila' || c.status === 'em_atendimento')
@@ -219,7 +219,7 @@ export const useQueueStore = create<QueueState>((set, get) => ({
       
       if (response.success) {
         console.log('📋 Buscando TODAS consultas (incluindo finalizadas)')
-        const consultationsList = response.data.data || response.data || []
+        const consultationsList = (response.data as any).data || response.data || []
         
         // Mapear status do backend para o formato do frontend
         const statusMap: Record<string, 'em-fila' | 'em-atendimento' | 'finalizado' | 'cancelado'> = {

@@ -21,11 +21,11 @@ export const useSpecialtyAccess = (user: User | null): SpecialtyAccess => {
       if (!user) return null;
 
       const roleToSpecialtyMap: Record<UserRole, Specialty | null> = {
-        [UserRole.paciente]: null, // Patients can access any specialty
-        [UserRole.psicologo]: Specialty.psicologo,
-        [UserRole.dentista]: Specialty.dentista,
-        [UserRole.medico]: Specialty.medico_clinico,
-        [UserRole.admin]: null, // Admin can access all
+        [UserRole.PACIENTE]: null, // Patients can access any specialty
+        [UserRole.PSICOLOGO]: Specialty.PSICOLOGO,
+        [UserRole.DENTISTA]: Specialty.DENTISTA,
+        [UserRole.MEDICO]: Specialty.MEDICO_CLINICO,
+        [UserRole.ADMIN]: null, // Admin can access all
       };
 
       return roleToSpecialtyMap[user.role] || null;
@@ -35,12 +35,12 @@ export const useSpecialtyAccess = (user: User | null): SpecialtyAccess => {
       if (!user) return false;
 
       // Admin can access all specialties
-      if (user.role === UserRole.admin) {
+      if (user.role === UserRole.ADMIN) {
         return true;
       }
 
       // Patients can access any specialty
-      if (user.role === UserRole.paciente) {
+      if (user.role === UserRole.PACIENTE) {
         return true;
       }
 
@@ -52,7 +52,7 @@ export const useSpecialtyAccess = (user: User | null): SpecialtyAccess => {
     const getAccessibleSpecialties = (): Specialty[] => {
       if (!user) return [];
 
-      if (user.role === UserRole.admin || user.role === UserRole.paciente) {
+      if (user.role === UserRole.ADMIN || user.role === UserRole.PACIENTE) {
         return Object.values(Specialty);
       }
 
@@ -62,9 +62,9 @@ export const useSpecialtyAccess = (user: User | null): SpecialtyAccess => {
 
     const getSpecialtyDisplayName = (specialty: Specialty): string => {
       const displayNames: Record<Specialty, string> = {
-        [Specialty.psicologo]: 'Psicólogo',
-        [Specialty.dentista]: 'Dentista',
-        [Specialty.medico_clinico]: 'Médico Clínico',
+        [Specialty.PSICOLOGO]: 'Psicólogo',
+        [Specialty.DENTISTA]: 'Dentista',
+        [Specialty.MEDICO_CLINICO]: 'Médico Clínico',
       };
 
       return displayNames[specialty] || specialty;
@@ -76,7 +76,7 @@ export const useSpecialtyAccess = (user: User | null): SpecialtyAccess => {
     ): T[] => {
       if (!user) return [];
 
-      if (user.role === UserRole.admin || user.role === UserRole.paciente) {
+      if (user.role === UserRole.ADMIN || user.role === UserRole.PACIENTE) {
         return items;
       }
 

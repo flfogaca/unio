@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
-import { Settings, Bell, Shield, Globe, Palette } from 'lucide-react'
+import { Settings, Bell, Shield, Palette } from 'lucide-react'
 
 export function Configuracoes() {
   return (

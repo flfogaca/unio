@@ -90,7 +90,7 @@ export function HistoricoConsultas() {
       
       return {
         id: item.id,
-        data: new Date(item.createdAt),
+        data: new Date(item.createdAt || new Date()),
         dentista: item.profissionalNome || 'Profissional não atribuído',
         especialidade: especialidadeMap[item.especialidade] || item.especialidade,
         status: item.status,
@@ -317,7 +317,7 @@ export function HistoricoConsultas() {
                     {consulta.proximaConsulta && (
                       <div className="bg-accent/5 p-3 rounded-lg mb-4">
                         <p className="text-sm text-accent">
-                          <strong>Próxima consulta:</strong> {consulta.proximaConsulta.toLocaleDateString('pt-BR')}
+                          <strong>Próxima consulta:</strong> {(consulta.proximaConsulta as any)?.toLocaleDateString('pt-BR')}
                         </p>
                       </div>
                     )}
@@ -356,7 +356,7 @@ export function HistoricoConsultas() {
                         <div className="flex flex-wrap gap-1">
                           {consulta.arquivos.slice(0, 3).map((arquivo, index) => (
                             <span key={index} className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
-                              {arquivo.split('.').pop()?.toUpperCase()}
+                              {(arquivo as any)?.split('.').pop()?.toUpperCase()}
                             </span>
                           ))}
                           {consulta.arquivos.length > 3 && (

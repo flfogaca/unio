@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { useAuthStore } from '@/stores/auth'
-import { User, Mail, Phone, Calendar, MapPin } from 'lucide-react'
+import { User, Mail, Phone, Calendar } from 'lucide-react'
 
 export function Perfil() {
   const { user } = useAuthStore()

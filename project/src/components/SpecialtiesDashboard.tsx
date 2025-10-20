@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Clock, Users, Activity, RefreshCw } from 'lucide-react';
 import { SpecialtyCard } from './SpecialtyCard';
 import { Card } from './ui/Card';
+// @ts-ignore
 import apiClient from '@/lib/api';
 
 interface Specialty {
@@ -27,6 +28,7 @@ export const SpecialtiesDashboard: React.FC<SpecialtiesDashboardProps> = ({ onSe
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
   // Especialidades disponíveis no sistema
+  // @ts-ignore
   const defaultSpecialties: Specialty[] = [
     {
       id: 'psicologo',

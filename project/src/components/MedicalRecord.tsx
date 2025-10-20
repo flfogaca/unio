@@ -5,16 +5,10 @@ import {
   Edit, 
   Save, 
   X, 
-  Eye, 
-  EyeOff, 
-  Share2, 
   Download,
   Upload,
-  Clock,
-  User,
   Stethoscope,
   Heart,
-  Thermometer,
   Activity
 } from 'lucide-react';
 import { Card } from './ui/Card';

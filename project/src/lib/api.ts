@@ -26,9 +26,9 @@ class ApiClient {
     const currentToken = localStorage.getItem('token');
     console.log('API Request to:', url, 'Token:', currentToken ? 'Present' : 'Missing');
     
-    const headers: HeadersInit = {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      ...options.headers,
+      ...(options.headers as Record<string, string>),
     };
 
     if (currentToken) {

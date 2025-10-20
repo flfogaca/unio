@@ -22,6 +22,7 @@ import { PsychologistModule } from './presentation/controllers/psychologist/psyc
 import { MedicalModule } from './presentation/controllers/medical/medical.module';
 import { ChatModule } from './presentation/controllers/chat/chat.module';
 import { TestController } from './test.controller';
+import { HealthController } from './presentation/controllers/health.controller';
 
 // Global interceptors and filters
 import { ResponseInterceptor } from './presentation/interceptors/response.interceptor';
@@ -66,7 +67,7 @@ import { JwtAuthGuard } from './presentation/controllers/auth/guards/jwt-auth.gu
     MedicalModule,
     ChatModule,
   ],
-  controllers: [TestController],
+  controllers: [TestController, HealthController],
   providers: [
     // Global guards
     {

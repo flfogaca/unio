@@ -91,18 +91,18 @@ export const AvailabilityDashboard: React.FC<AvailabilityDashboardProps> = ({
 
   const getSpecialtyIcon = (specialty: Specialty) => {
     const icons = {
-      [Specialty.psicologo]: '🧠',
-      [Specialty.dentista]: '🦷',
-      [Specialty.medico_clinico]: '🩺',
+      [Specialty.PSICOLOGO]: '🧠',
+      [Specialty.DENTISTA]: '🦷',
+      [Specialty.MEDICO_CLINICO]: '🩺',
     };
     return icons[specialty] || '🏥';
   };
 
   const getSpecialtyName = (specialty: Specialty) => {
     const names = {
-      [Specialty.psicologo]: 'Psicólogo',
-      [Specialty.dentista]: 'Dentista',
-      [Specialty.medico_clinico]: 'Médico Clínico',
+      [Specialty.PSICOLOGO]: 'Psicólogo',
+      [Specialty.DENTISTA]: 'Dentista',
+      [Specialty.MEDICO_CLINICO]: 'Médico Clínico',
     };
     return names[specialty] || specialty;
   };

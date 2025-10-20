@@ -4,7 +4,6 @@ import {
   AlertTriangle, 
   Clock, 
   Calendar, 
-  FileText,
   Plus,
   X,
   Send,

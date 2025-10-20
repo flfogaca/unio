@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,7 +7,241 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Enums
+model User {
+  id                           String                 @id @default(uuid())
+  cpf                          String                 @unique
+  email                        String                 @unique
+  password                     String
+  name                         String
+  role                         UserRole
+  phone                        String?
+  birthDate                    DateTime?
+  avatar                       String?
+  isActive                     Boolean                @default(true)
+  isOnline                     Boolean                @default(false)
+  lastLoginAt                  DateTime?
+  createdAt                    DateTime               @default(now())
+  updatedAt                    DateTime               @updatedAt
+  cro                          String?
+  specialties                  String[]               @default([])
+  consultationsAsPatient       Consultation[]         @relation("PatientConsultations")
+  consultationsAsProfessional  Consultation[]         @relation("ProfessionalConsultations")
+  doctor                       Doctor?
+  medicalRecordsAsPatient      MedicalRecord[]        @relation("PatientRecords")
+  medicalRecordsAsProfessional MedicalRecord[]        @relation("ProfessionalRecords")
+  notifications                Notification[]
+  videoCallParticipants        VideoCallParticipant[]
+
+  @@map("users")
+}
+
+model SpecialtyConfig {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("specialty_configs")
+}
+
+model Doctor {
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  specialtyId String?
+  crm         String?
+  isAvailable Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("doctors")
+}
+
+model Consultation {
+  id                String               @id @default(uuid())
+  patientId         String
+  professionalId    String?
+  specialty         Specialty
+  description       String
+  status            ConsultationStatus   @default(em_fila)
+  priority          ConsultationPriority @default(media)
+  position          Int                  @default(1)
+  estimatedWaitTime Int                  @default(0)
+  scheduledAt       DateTime?
+  startedAt         DateTime?
+  finishedAt        DateTime?
+  notes             String?
+  attachments       String[]             @default([])
+  roomId            String?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  endedAt           DateTime?
+  reason            String?
+  chatMessages      ChatMessage[]
+  patient           User                 @relation("PatientConsultations", fields: [patientId], references: [id], onDelete: Cascade)
+  professional      User?                @relation("ProfessionalConsultations", fields: [professionalId], references: [id])
+  medicalRecord     MedicalRecord?
+  notifications     Notification[]
+
+  @@map("consultations")
+}
+
+model ChatMessage {
+  id             String       @id @default(uuid())
+  consultationId String
+  senderId       String
+  senderName     String
+  senderType     String
+  message        String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  consultation   Consultation @relation(fields: [consultationId], references: [id], onDelete: Cascade)
+
+  @@index([consultationId])
+  @@index([createdAt])
+  @@map("chat_messages")
+}
+
+model MedicalRecord {
+  id             String         @id @default(uuid())
+  consultationId String         @unique
+  patientId      String
+  professionalId String
+  specialty      Specialty
+  diagnosis      String?
+  treatment      String?
+  prescription   String[]       @default([])
+  notes          String?
+  vitalSigns     Json?
+  attachments    String[]       @default([])
+  isPrivate      Boolean        @default(true)
+  sharedWith     String[]       @default([])
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  certificates   Certificate[]
+  consultation   Consultation   @relation(fields: [consultationId], references: [id], onDelete: Cascade)
+  patient        User           @relation("PatientRecords", fields: [patientId], references: [id], onDelete: Cascade)
+  professional   User           @relation("ProfessionalRecords", fields: [professionalId], references: [id], onDelete: Cascade)
+  prescriptions  Prescription[]
+
+  @@map("medical_records")
+}
+
+model Prescription {
+  id              String        @id @default(uuid())
+  medicalRecordId String
+  medication      String
+  dosage          String
+  instructions    String
+  issuedAt        DateTime      @default(now())
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  medicalRecord   MedicalRecord @relation(fields: [medicalRecordId], references: [id], onDelete: Cascade)
+
+  @@map("prescriptions")
+}
+
+model Certificate {
+  id              String        @id @default(uuid())
+  medicalRecordId String
+  type            String
+  description     String
+  issuedAt        DateTime      @default(now())
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  medicalRecord   MedicalRecord @relation(fields: [medicalRecordId], references: [id], onDelete: Cascade)
+
+  @@map("certificates")
+}
+
+model VideoCallRoom {
+  id             String                 @id @default(uuid())
+  consultationId String                 @unique
+  roomId         String                 @unique
+  isActive       Boolean                @default(true)
+  expiresAt      DateTime
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+  participants   VideoCallParticipant[]
+
+  @@map("video_call_rooms")
+}
+
+model VideoCallParticipant {
+  id       String        @id @default(uuid())
+  roomId   String
+  userId   String
+  socketId String
+  joinedAt DateTime      @default(now())
+  leftAt   DateTime?
+  room     VideoCallRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, userId])
+  @@map("video_call_participants")
+}
+
+model Notification {
+  id             String        @id @default(uuid())
+  userId         String
+  consultationId String?
+  type           String
+  title          String
+  message        String
+  isRead         Boolean       @default(false)
+  data           Json?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  consultation   Consultation? @relation(fields: [consultationId], references: [id], onDelete: Cascade)
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model QueueStatistics {
+  id              String    @id @default(uuid())
+  specialty       Specialty
+  date            DateTime
+  totalInQueue    Int       @default(0)
+  totalInProgress Int       @default(0)
+  totalFinished   Int       @default(0)
+  averageWaitTime Int       @default(0)
+  averageDuration Int       @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@map("queue_statistics")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  action     String
+  entityType String
+  entityId   String?
+  oldData    Json?
+  newData    Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  @@map("audit_logs")
+}
+
+model SystemConfig {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  type      String   @default("string")
+  category  String   @default("general")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("system_config")
+}
+
 enum UserRole {
   paciente
   dentista
@@ -38,275 +269,3 @@ enum Specialty {
   dentista
   medico_clinico
 }
-
-// User model
-model User {
-  id          String   @id @default(uuid())
-  cpf         String   @unique
-  email       String   @unique
-  password    String
-  name        String
-  role        UserRole
-  phone       String?
-  birthDate   DateTime?
-  avatar      String?
-  isActive    Boolean  @default(true)
-  isOnline    Boolean  @default(false)
-  lastLoginAt DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Professional fields
-  cro           String?  // CRO for dentists
-  specialties   String[] @default([])
-
-  // Relations
-  consultationsAsPatient     Consultation[]     @relation("PatientConsultations")
-  consultationsAsProfessional Consultation[]    @relation("ProfessionalConsultations")
-  medicalRecordsAsPatient     MedicalRecord[]    @relation("PatientRecords")
-  medicalRecordsAsProfessional MedicalRecord[]   @relation("ProfessionalRecords")
-  notifications               Notification[]
-  videoCallParticipants      VideoCallParticipant[]
-  doctor                     Doctor?
-
-  @@map("users")
-}
-
-// SpecialtyConfig model
-model SpecialtyConfig {
-  id          String    @id @default(uuid())
-  name        String    @unique
-  description String?
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  @@map("specialty_configs")
-}
-
-// Doctor model
-model Doctor {
-  id          String    @id @default(uuid())
-  userId      String    @unique
-  specialtyId String?
-  crm         String?   // Medical registration number
-  isAvailable Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  // Relations
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("doctors")
-}
-
-// Consultation model
-model Consultation {
-  id                String              @id @default(uuid())
-  patientId         String
-  professionalId    String?
-  specialty         Specialty
-  description       String
-  reason            String?
-  status            ConsultationStatus  @default(em_fila)
-  priority          ConsultationPriority @default(media)
-  position          Int                 @default(1)
-  estimatedWaitTime Int                 @default(0) // in minutes
-  scheduledAt       DateTime?
-  startedAt         DateTime?
-  finishedAt        DateTime?
-  endedAt           DateTime?
-  notes             String?
-  attachments       String[]            @default([])
-  roomId            String?
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-
-  // Relations
-  patient           User                @relation("PatientConsultations", fields: [patientId], references: [id], onDelete: Cascade)
-  professional      User?               @relation("ProfessionalConsultations", fields: [professionalId], references: [id], onDelete: SetNull)
-  medicalRecord     MedicalRecord?
-  notifications     Notification[]
-  chatMessages      ChatMessage[]
-
-  @@map("consultations")
-}
-
-// Chat Message model
-model ChatMessage {
-  id              String   @id @default(uuid())
-  consultationId  String
-  senderId        String
-  senderName      String
-  senderType      String   // 'paciente', 'profissional', 'sistema'
-  message         String
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  // Relations
-  consultation    Consultation @relation(fields: [consultationId], references: [id], onDelete: Cascade)
-
-  @@map("chat_messages")
-  @@index([consultationId])
-  @@index([createdAt])
-}
-
-// Medical Record model
-model MedicalRecord {
-  id              String   @id @default(uuid())
-  consultationId  String   @unique
-  patientId       String
-  professionalId  String
-  specialty       Specialty
-  diagnosis       String?
-  treatment       String?
-  prescription    String[] @default([])
-  notes           String?
-  vitalSigns      Json?    // Blood pressure, heart rate, temperature, etc.
-  attachments     String[] @default([])
-  isPrivate       Boolean  @default(true)
-  sharedWith      String[] @default([]) // Array of user IDs who can access this record
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  // Relations
-  consultation    Consultation @relation(fields: [consultationId], references: [id], onDelete: Cascade)
-  patient         User         @relation("PatientRecords", fields: [patientId], references: [id], onDelete: Cascade)
-  professional    User         @relation("ProfessionalRecords", fields: [professionalId], references: [id], onDelete: Cascade)
-  prescriptions   Prescription[]
-  certificates    Certificate[]
-
-  @@map("medical_records")
-}
-
-// Prescription model
-model Prescription {
-  id              String        @id @default(uuid())
-  medicalRecordId String
-  medication      String
-  dosage          String
-  instructions    String
-  issuedAt        DateTime      @default(now())
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-
-  // Relations
-  medicalRecord   MedicalRecord @relation(fields: [medicalRecordId], references: [id], onDelete: Cascade)
-
-  @@map("prescriptions")
-}
-
-// Certificate model
-model Certificate {
-  id              String        @id @default(uuid())
-  medicalRecordId String
-  type            String
-  description     String
-  issuedAt        DateTime      @default(now())
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-
-  // Relations
-  medicalRecord   MedicalRecord @relation(fields: [medicalRecordId], references: [id], onDelete: Cascade)
-
-  @@map("certificates")
-}
-
-// Video Call Room model
-model VideoCallRoom {
-  id            String    @id @default(uuid())
-  consultationId String   @unique
-  roomId        String    @unique
-  isActive      Boolean   @default(true)
-  expiresAt     DateTime
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  // Relations
-  participants  VideoCallParticipant[]
-
-  @@map("video_call_rooms")
-}
-
-// Video Call Participant model
-model VideoCallParticipant {
-  id        String   @id @default(uuid())
-  roomId    String
-  userId    String
-  socketId  String
-  joinedAt  DateTime @default(now())
-  leftAt    DateTime?
-
-  // Relations
-  room      VideoCallRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([roomId, userId])
-  @@map("video_call_participants")
-}
-
-// Notification model
-model Notification {
-  id             String   @id @default(uuid())
-  userId         String
-  consultationId String?
-  type           String   // 'consultation_started', 'consultation_finished', 'queue_update', etc.
-  title          String
-  message        String
-  isRead         Boolean  @default(false)
-  data           Json?    // Additional data for the notification
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  // Relations
-  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  consultation   Consultation? @relation(fields: [consultationId], references: [id], onDelete: Cascade)
-
-  @@map("notifications")
-}
-
-// Queue Statistics model (for analytics)
-model QueueStatistics {
-  id                String    @id @default(uuid())
-  specialty         Specialty
-  date              DateTime
-  totalInQueue      Int       @default(0)
-  totalInProgress   Int       @default(0)
-  totalFinished     Int       @default(0)
-  averageWaitTime   Int       @default(0) // in minutes
-  averageDuration   Int       @default(0) // in minutes
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-
-  @@map("queue_statistics")
-}
-
-// Audit Log model (for compliance and tracking)
-model AuditLog {
-  id          String   @id @default(uuid())
-  userId      String?
-  action      String   // 'create', 'update', 'delete', 'login', 'logout', etc.
-  entityType  String   // 'User', 'Consultation', 'MedicalRecord', etc.
-  entityId    String?
-  oldData     Json?
-  newData     Json?
-  ipAddress   String?
-  userAgent   String?
-  createdAt   DateTime @default(now())
-
-  @@map("audit_logs")
-}
-
-// System Configuration model
-model SystemConfig {
-  id        String   @id @default(uuid())
-  key       String   @unique
-  value     String
-  type      String   @default("string") // 'string', 'number', 'boolean', 'json'
-  category  String   @default("general") // 'general', 'notifications', 'video', etc.
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("system_config")
-}
-

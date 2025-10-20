@@ -1,21 +1,6 @@
 import { create } from 'zustand'
 import apiClient from '@/lib/api'
-
-export type UserRole = 'paciente' | 'dentista' | 'psicologo' | 'medico' | 'admin'
-
-interface User {
-  id: string
-  name: string
-  email: string
-  cpf: string
-  role: UserRole
-  avatar?: string
-  isOnline?: boolean
-  cro?: string
-  specialties?: string[]
-  phone?: string
-  birthDate?: string
-}
+import { User } from '@/shared/types'
 
 interface AuthState {
   user: User | null
@@ -29,7 +14,7 @@ interface AuthState {
   clearError: () => void
 }
 
-export const useAuthStore = create<AuthState>((set, get) => ({
+export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   isAuthenticated: false,
   isLoading: false,

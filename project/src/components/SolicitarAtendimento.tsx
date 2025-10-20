@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react'
-import { ArrowLeft, Clock, Calendar, AlertCircle, Send, Brain, Smile, Stethoscope, Upload } from 'lucide-react'
+import React, { useState } from 'react'
+import { ArrowLeft, Send, Brain, Smile, Stethoscope } from 'lucide-react'
 import { Card } from './ui/Card'
 import { Button } from './ui/Button'
 

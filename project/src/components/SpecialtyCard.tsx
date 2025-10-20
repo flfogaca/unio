@@ -108,7 +108,7 @@ export const SpecialtyCard: React.FC<SpecialtyCardProps> = ({ specialty, onSelec
           </div>
           
           <StatusBadge 
-            status={statusInfo.status}
+            status={statusInfo.status as any}
             className={`${statusInfo.color} text-white`}
           >
             <StatusIcon className="w-3 h-3 mr-1" />

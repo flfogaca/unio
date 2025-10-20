@@ -265,7 +265,7 @@ export function ConsultaRoom({ consultaId }: ConsultaRoomProps) {
       
       // Mostrar modal de sucesso
       setEndModalData({
-        finishedBy: user.name || 'Profissional',
+        finishedBy: user?.name || 'Profissional',
         finishedByRole: 'profissional',
         duration: '0min 0s' // Será calculado pelo backend
       })

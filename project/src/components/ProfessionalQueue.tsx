@@ -4,10 +4,8 @@ import {
   Clock, 
   Play, 
   CheckCircle, 
-  AlertCircle, 
   RefreshCw,
   Video,
-  Phone,
   User,
   Calendar
 } from 'lucide-react';
@@ -35,8 +33,7 @@ const priorityColors = {
 };
 
 export const ProfessionalQueue: React.FC<ProfessionalQueueProps> = ({ 
-  specialty, 
-  userRole 
+  specialty
 }) => {
   const {
     state,
@@ -209,7 +206,7 @@ export const ProfessionalQueue: React.FC<ProfessionalQueueProps> = ({
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {state.consultations.map((consultation, index) => (
+                  {state.consultations.map((consultation) => (
                     <div
                       key={consultation.id}
                       className="p-4 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors"

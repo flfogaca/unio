@@ -1,8 +1,9 @@
 import { cn } from '@/lib/utils'
 
 interface StatusBadgeProps {
-  status: 'em-fila' | 'em-atendimento' | 'finalizado' | 'cancelado'
+  status?: 'em-fila' | 'em-atendimento' | 'finalizado' | 'cancelado'
   className?: string
+  children?: React.ReactNode
 }
 
 const statusConfig = {
@@ -24,8 +25,8 @@ const statusConfig = {
   }
 }
 
-export function StatusBadge({ status, className }: StatusBadgeProps) {
-  const config = statusConfig[status] || statusConfig['em-fila'] // Fallback para 'em-fila'
+export function StatusBadge({ status, className, children }: StatusBadgeProps) {
+  const config = statusConfig[status || 'em-fila']
   
   return (
     <span 
@@ -35,7 +36,7 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
         className
       )}
     >
-      {config.label}
+      {children || config.label}
     </span>
   )
 }

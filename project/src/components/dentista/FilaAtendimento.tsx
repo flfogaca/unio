@@ -300,7 +300,7 @@ export function FilaAtendimento() {
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">Especialidades:</span>
                   <div className="text-right">
-                    {user?.especialidades?.map((esp, index) => (
+                    {user?.specialties?.map((esp, index) => (
                       <div key={index} className="text-xs text-gray-600">{esp}</div>
                     ))}
                   </div>

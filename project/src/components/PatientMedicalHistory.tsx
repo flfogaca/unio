@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { 
   FileText, 
   Search, 
-  Filter, 
   Calendar, 
   User, 
   Stethoscope,
@@ -64,7 +63,6 @@ export const PatientMedicalHistory: React.FC<PatientMedicalHistoryProps> = ({
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSpecialty, setSelectedSpecialty] = useState<string>('all');
-  const [selectedRecord, setSelectedRecord] = useState<MedicalRecord | null>(null);
   const [expandedRecords, setExpandedRecords] = useState<Set<string>>(new Set());
 
   // Load medical records

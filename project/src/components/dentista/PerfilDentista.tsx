@@ -45,7 +45,7 @@ export function PerfilDentista() {
     telefone: '(11) 99999-9999',
     endereco: 'Rua das Flores, 123 - São Paulo, SP',
     cro: user?.cro || '',
-    especialidades: user?.especialidades || [],
+    especialidades: user?.specialties || [],
     biografia: 'Dentista especializado em clínica geral e endodontia com mais de 10 anos de experiência. Formado pela USP, pós-graduado em Endodontia pela UNICAMP.',
     formacao: [
       { instituicao: 'Universidade de São Paulo (USP)', curso: 'Odontologia', ano: '2014' },
@@ -111,7 +111,7 @@ export function PerfilDentista() {
       name: formData.name,
       email: formData.email,
       cro: formData.cro,
-      especialidades: formData.especialidades
+      specialties: formData.especialidades
     })
     setIsEditing(false)
     // Mostrar feedback de sucesso
@@ -130,7 +130,7 @@ export function PerfilDentista() {
   const handleRemoveEspecialidade = (index: number) => {
     setFormData(prev => ({
       ...prev,
-      especialidades: prev.especialidades.filter((_, i) => i !== index)
+      especialidades: prev.especialidades.filter((_: any, i: number) => i !== index)
     }))
   }
 
@@ -190,7 +190,7 @@ export function PerfilDentista() {
               <div className="mb-4">
                 <label className="text-sm font-medium text-gray-600 mb-2 block">Especialidades</label>
                 <div className="flex flex-wrap gap-2">
-                  {formData.especialidades.map((esp, index) => (
+                  {formData.especialidades.map((esp: any, index: number) => (
                     <div key={index} className="flex items-center gap-1 bg-accent/10 text-accent px-3 py-1 rounded-full text-sm">
                       <span>{esp}</span>
                       {isEditing && (
