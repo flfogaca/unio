@@ -85,14 +85,17 @@ export const useQueueStore = create<QueueState>((set, get) => ({
           isLoading: false 
         }))
       } else {
+        const errorMessage = response.message || 'Erro ao adicionar à fila'
         set({ 
-          error: response.message || 'Erro ao adicionar à fila',
+          error: errorMessage,
           isLoading: false 
         })
+        throw new Error(errorMessage)
       }
     } catch (error: any) {
+      const errorMessage = error.message || 'Erro ao adicionar à fila'
       set({ 
-        error: error.message || 'Erro ao adicionar à fila',
+        error: errorMessage,
         isLoading: false 
       })
       throw error

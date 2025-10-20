@@ -1,11 +1,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { StatusBadge } from '@/components/ui/StatusBadge'
+import { ConfirmModal } from '@/components/ui/Modal'
+import { ConsultationEndModal } from '@/components/ui/ConsultationEndModal'
 import { useQueueStore } from '@/stores/queue'
 import { useChatStore, initializeConsultationChat, disconnectChat } from '@/stores/chat'
 import { useAuthStore } from '@/stores/auth'
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { webrtcService } from '@/lib/webrtc'
+import { queueSocketService } from '@/lib/queueSocket'
 import { 
   Video, 
   VideoOff, 
@@ -48,6 +51,15 @@ export function ConsultaRoom({ consultaId }: ConsultaRoomProps) {
   const [remoteVideoRef, setRemoteVideoRef] = useState<HTMLVideoElement | null>(null)
   const [webrtcInitialized, setWebrtcInitialized] = useState(false)
   const offerCreatedRef = useRef(false)
+  
+  // Estados dos modais
+  const [showConfirmEndModal, setShowConfirmEndModal] = useState(false)
+  const [showEndModal, setShowEndModal] = useState(false)
+  const [endModalData, setEndModalData] = useState<{
+    finishedBy: string
+    finishedByRole: 'paciente' | 'profissional'
+    duration: string
+  } | null>(null)
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -162,26 +174,121 @@ export function ConsultaRoom({ consultaId }: ConsultaRoomProps) {
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
   }
 
-  const handleFinalizarConsulta = async () => {
-    if (window.confirm('Tem certeza que deseja finalizar esta consulta?')) {
-      console.log('🏁 Finalizando consulta:', consultaId)
-      
-      try {
-        // Finalizar consulta no backend
-        await finalizarConsulta(consultaId)
-        console.log('✅ Consulta finalizada no backend')
-        
-        // Desconectar chat
-        disconnectChat(consultaId)
-        console.log('🔌 Chat desconectado')
-        
-        alert('Consulta finalizada com sucesso!')
-        window.location.hash = '/dentista'
-      } catch (error) {
-        console.error('❌ Erro ao finalizar consulta:', error)
-        alert('Erro ao finalizar consulta. Tente novamente.')
+  // Conectar ao WebSocket de fila
+  useEffect(() => {
+    const token = localStorage.getItem('token')
+    console.log('🔌 Profissional: Tentando conectar WebSocket...', { user: user?.id, token: token ? 'Present' : 'Missing' })
+    
+    if (user && token) {
+      const socket = queueSocketService.connect(token)
+      console.log('🔌 Profissional: WebSocket conectado:', socket?.id)
+      queueSocketService.joinUserRoom(user.id)
+      console.log('🔌 Profissional: Entrou na sala do usuário:', user.id)
+    } else {
+      console.log('❌ Profissional: Não foi possível conectar - usuário ou token ausente')
+    }
+
+    return () => {
+      if (user) {
+        console.log('🔌 Profissional: Saindo da sala do usuário:', user.id)
+        queueSocketService.leaveUserRoom(user.id)
       }
     }
+  }, [user])
+
+  // Escutar evento de consulta finalizada via WebSocket
+  useEffect(() => {
+    console.log('🎯 Profissional: Configurando listener para consultation-finished')
+    
+    const handleConsultationFinished = (data: any) => {
+      console.log('🔔 Profissional: Consulta finalizada (WebSocket):', data)
+      console.log('🔔 Profissional: ConsultaId recebida:', data.consultationId, 'vs atual:', consultaId)
+      
+      if (data.consultationId === consultaId) {
+        console.log('✅ Profissional: Consulta corresponde, processando...')
+        
+        // Mostrar modal informativo
+        setEndModalData({
+          finishedBy: data.finishedBy || 'Usuário',
+          finishedByRole: data.finishedByRole || 'profissional',
+          duration: data.duration || '0min 0s'
+        })
+        setShowEndModal(true)
+        
+        // Desconectar chat e vídeo
+        disconnectChat(consultaId)
+        webrtcService.cleanup()
+        
+        // Se deve redirecionar automaticamente (quando paciente finaliza)
+        if (data.shouldRedirect && data.redirectTo) {
+          console.log('🚀 Profissional: Redirecionando para:', data.redirectTo)
+          setTimeout(() => {
+            console.log('🚀 Profissional: Executando redirecionamento...')
+            window.location.href = data.redirectTo
+          }, 3000) // Aguardar 3 segundos para o usuário ver o modal
+        } else {
+          console.log('ℹ️ Profissional: Sem redirecionamento automático')
+        }
+      } else {
+        console.log('❌ Profissional: Consulta não corresponde')
+      }
+    }
+
+    queueSocketService.on('consultation-finished', handleConsultationFinished)
+
+    return () => {
+      console.log('🧹 Profissional: Removendo listener consultation-finished')
+      queueSocketService.off('consultation-finished', handleConsultationFinished)
+    }
+  }, [consultaId])
+
+  const handleConfirmEnd = async () => {
+    console.log('🏁 Profissional finalizando consulta:', consultaId)
+    
+    try {
+      // Emitir evento via WebSocket para notificar instantaneamente
+      if (queueSocketService.isConnected() && user) {
+        console.log('📡 Emitindo finish-consultation via WebSocket')
+        queueSocketService.emit('finish-consultation', {
+          consultationId: consultaId,
+          notes: anotacoes || 'Consulta finalizada'
+        })
+      } else {
+        console.log('❌ WebSocket não conectado ou usuário não disponível')
+        console.log('WebSocket conectado:', queueSocketService.isConnected())
+        console.log('Usuário:', user)
+      }
+
+      // Finalizar consulta no backend
+      await finalizarConsulta(consultaId, anotacoes)
+      console.log('✅ Consulta finalizada no backend')
+      
+      // Mostrar modal de sucesso
+      setEndModalData({
+        finishedBy: user.name || 'Profissional',
+        finishedByRole: 'profissional',
+        duration: '0min 0s' // Será calculado pelo backend
+      })
+      setShowEndModal(true)
+      
+      // O modal será exibido automaticamente pelo evento WebSocket
+    } catch (error) {
+      console.error('❌ Erro ao finalizar consulta:', error)
+      alert('Erro ao finalizar consulta. Tente novamente.')
+    }
+  }
+
+  const handleCloseEndModal = () => {
+    setShowEndModal(false)
+    // Redirecionar baseado no role do usuário - limpar hash completamente
+    const roleRoutes = {
+      dentista: '/dentista',
+      psicologo: '/dentista', // Psicólogos usam as mesmas rotas dos dentistas
+      medico: '/dentista'     // Médicos usam as mesmas rotas dos dentistas
+    }
+    const route = roleRoutes[user?.role as keyof typeof roleRoutes] || '/dentista'
+    // Limpar hash e usar pathname limpo
+    window.location.href = route
   }
 
   const handleSendMessage = () => {
@@ -304,11 +411,11 @@ export function ConsultaRoom({ consultaId }: ConsultaRoomProps) {
 
                 <Button 
                   variant="secondary" 
-                  onClick={handleFinalizarConsulta}
+                  onClick={() => setShowConfirmEndModal(true)}
                   className="bg-red-500 hover:bg-red-600 text-white"
                 >
                   <Phone className="h-4 w-4 mr-2" />
-                  Finalizar
+                  Finalizar Consulta
                 </Button>
               </div>
             </CardContent>
@@ -476,6 +583,29 @@ export function ConsultaRoom({ consultaId }: ConsultaRoomProps) {
           </Card>
         </div>
       </div>
+
+      {/* Modal de Confirmação */}
+      <ConfirmModal
+        isOpen={showConfirmEndModal}
+        onClose={() => setShowConfirmEndModal(false)}
+        onConfirm={handleConfirmEnd}
+        title="Finalizar Consulta"
+        message="Tem certeza que deseja finalizar esta consulta? O paciente será notificado."
+        confirmText="Finalizar"
+        cancelText="Cancelar"
+        variant="danger"
+      />
+
+      {/* Modal de Consulta Finalizada */}
+      {endModalData && (
+        <ConsultationEndModal
+          isOpen={showEndModal}
+          onClose={handleCloseEndModal}
+          finishedBy={endModalData.finishedBy}
+          finishedByRole={endModalData.finishedByRole}
+          duration={endModalData.duration}
+        />
+      )}
     </div>
   )
 }

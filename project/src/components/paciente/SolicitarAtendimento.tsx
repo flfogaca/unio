@@ -33,6 +33,7 @@ export function SolicitarAtendimento() {
     imagem: null as string | null
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -52,6 +53,7 @@ export function SolicitarAtendimento() {
     }
 
     setIsSubmitting(true)
+    setErrorMessage(null)
     
     try {
       await addToQueue({
@@ -65,8 +67,10 @@ export function SolicitarAtendimento() {
       
       setIsSubmitting(false)
       setCurrentStep(4) // Sucesso
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao adicionar à fila:', error)
+      const message = error?.message || 'Erro ao solicitar atendimento. Tente novamente.'
+      setErrorMessage(message)
       setIsSubmitting(false)
       // Manter no step atual para mostrar erro
     }
@@ -87,6 +91,7 @@ export function SolicitarAtendimento() {
 
   const handleNewRequest = () => {
     setCurrentStep(1)
+    setErrorMessage(null)
     setFormData({
       especialidade: '',
       prioridade: 'media',
@@ -159,6 +164,12 @@ export function SolicitarAtendimento() {
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {errorMessage && (
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-800 text-sm font-medium">{errorMessage}</p>
+            </div>
+          )}
+          
           {currentStep === 1 && (
             <div className="space-y-6">
               <div>

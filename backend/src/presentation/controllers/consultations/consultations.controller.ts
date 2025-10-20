@@ -152,8 +152,8 @@ export class ConsultationsController {
   }
 
   @Patch(':id/finish')
-  @Roles(UserRole.dentista, UserRole.psicologo, UserRole.medico)
-  @ApiOperation({ summary: 'Finish consultation (Professionals only)' })
+  @Roles(UserRole.dentista, UserRole.psicologo, UserRole.medico, UserRole.paciente)
+  @ApiOperation({ summary: 'Finish consultation (Professionals and Patients)' })
   @ApiResponse({ status: 200, description: 'Consultation finished successfully' })
   @ApiResponse({ status: 404, description: 'Consultation not found' })
   @ApiResponse({ status: 400, description: 'Cannot finish this consultation' })
@@ -162,12 +162,20 @@ export class ConsultationsController {
     @Body(ValidationPipe) finishData: any,
     @CurrentUser() user: any,
   ) {
-    // Verificar se a consulta é da especialidade do profissional
     const consultation = await this.consultationsService.findOne(id);
-    const userSpecialty = this.specialtyFilterService.getUserSpecialty(user.role);
     
-    if (userSpecialty && consultation.specialty !== userSpecialty) {
-      throw new Error('Você só pode finalizar consultas da sua especialidade');
+    // Se for paciente, verificar se é dono da consulta
+    if (user.role === UserRole.paciente) {
+      if (consultation.patientId !== user.id) {
+        throw new Error('Você só pode finalizar suas próprias consultas');
+      }
+    } else {
+      // Se for profissional, verificar se a consulta é da sua especialidade
+      const userSpecialty = this.specialtyFilterService.getUserSpecialty(user.role);
+      
+      if (userSpecialty && consultation.specialty !== userSpecialty) {
+        throw new Error('Você só pode finalizar consultas da sua especialidade');
+      }
     }
     
     return this.consultationsService.finish(id, finishData.notes);

@@ -232,10 +232,23 @@ export class QueueGateway implements OnGatewayConnection, OnGatewayDisconnect {
       // Get consultation details
       const consultation = await this.prismaService.consultation.findUnique({
         where: { id: consultationId },
+        include: {
+          patient: true,
+          professional: true,
+        },
       });
 
-      if (!consultation || consultation.professionalId !== client.userId) {
-        client.emit('error', { message: 'Consultation not found or access denied' });
+      if (!consultation) {
+        client.emit('error', { message: 'Consultation not found' });
+        return;
+      }
+
+      // Verificar se o usuário tem permissão para finalizar (profissional OU paciente)
+      const isProfessional = consultation.professionalId === client.userId;
+      const isPatient = consultation.patientId === client.userId;
+
+      if (!isProfessional && !isPatient) {
+        client.emit('error', { message: 'Access denied' });
         return;
       }
 
@@ -244,12 +257,27 @@ export class QueueGateway implements OnGatewayConnection, OnGatewayDisconnect {
         return;
       }
 
+      // Calcular duração da consulta
+      const startTime = consultation.startedAt ? new Date(consultation.startedAt) : new Date();
+      const endTime = new Date();
+      const durationMs = endTime.getTime() - startTime.getTime();
+      const durationMinutes = Math.floor(durationMs / 60000);
+      const durationSeconds = Math.floor((durationMs % 60000) / 1000);
+      const durationString = `${durationMinutes}min ${durationSeconds}s`;
+
+      // Obter informações de quem finalizou
+      const finishedByName = isProfessional 
+        ? consultation.professional?.name || 'Profissional'
+        : consultation.patient?.name || 'Paciente';
+      const finishedByRole = isProfessional ? 'profissional' : 'paciente';
+
       // Update consultation
       const updatedConsultation = await this.prismaService.consultation.update({
         where: { id: consultationId },
         data: {
           status: 'finalizado',
           finishedAt: new Date(),
+          endedAt: new Date(),
           notes,
         },
         include: {
@@ -264,19 +292,45 @@ export class QueueGateway implements OnGatewayConnection, OnGatewayDisconnect {
       // Get updated queue status
       const queueStatus = await this.getQueueStatus(consultation.specialty);
 
-      // Broadcast to specialty room
-      this.server.to(`specialty:${consultation.specialty}`).emit('consultation-finished', {
-        consultationId,
-        queueStatus,
-      });
-
-      // Notify patient
-      this.server.to(`user:${consultation.patientId}`).emit('consultation-finished', {
+      // Preparar dados da notificação
+      const finishData = {
         consultationId,
         consultation: updatedConsultation,
-      });
+        finishedBy: finishedByName,
+        finishedByRole,
+        duration: durationString,
+        queueStatus,
+        redirectTo: {
+          patient: '/paciente',
+          professional: isProfessional ? '/dentista' : null // Se paciente finalizou, profissional não precisa redirecionar
+        }
+      };
 
-      client.emit('consultation-finished-success', updatedConsultation);
+      // Broadcast to specialty room
+      this.server.to(`specialty:${consultation.specialty}`).emit('consultation-finished', finishData);
+
+      // Notificar o paciente com dados específicos
+      const patientData = {
+        ...finishData,
+        shouldRedirect: true,
+        redirectTo: '/paciente'
+      };
+      console.log('📤 Enviando para paciente:', consultation.patientId, patientData);
+      this.server.to(`user:${consultation.patientId}`).emit('consultation-finished', patientData);
+
+      // Notificar o profissional (se houver) com dados específicos
+      if (consultation.professionalId) {
+        const professionalData = {
+          ...finishData,
+          shouldRedirect: true,
+          redirectTo: '/dentista'
+        };
+        console.log('📤 Enviando para profissional:', consultation.professionalId, professionalData);
+        this.server.to(`user:${consultation.professionalId}`).emit('consultation-finished', professionalData);
+      }
+
+      // Confirmar para quem finalizou
+      client.emit('consultation-finished-success', finishData);
 
     } catch (error) {
       console.error('Error finishing consultation:', error);

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { Specialty, ConsultationStatus, ConsultationPriority } from '@/shared/types';
 
@@ -127,6 +127,20 @@ export class ConsultationsService {
   }
 
   async create(createConsultationDto: CreateConsultationDto) {
+    // Verificar se o paciente já tem uma consulta ativa
+    const activeConsultation = await this.prismaService.consultation.findFirst({
+      where: {
+        patientId: createConsultationDto.patientId,
+        status: {
+          in: ['em_fila', 'em_atendimento']
+        }
+      }
+    });
+
+    if (activeConsultation) {
+      throw new BadRequestException('Você já possui uma consulta ativa. Aguarde a finalização antes de agendar outra.');
+    }
+
     // Usar tempo padrão por enquanto (TODO: integrar WaitTimeService)
     const estimatedWaitTime = 15;
     

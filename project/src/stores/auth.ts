@@ -43,7 +43,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       console.log('Login response:', response)
       
       if (response.success) {
-        const { user, token } = response.data
+        const { user, token } = response.data as { user: User; token: string }
         console.log('Token received:', token ? 'Present' : 'Missing')
         console.log('Token value:', token)
         
@@ -106,7 +106,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       
       if (response.success && response.data) {
         set({ 
-          user: response.data, 
+          user: response.data as User, 
           isAuthenticated: true, 
           isLoading: false 
         })
@@ -150,7 +150,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const response = await apiClient.getProfile()
       if (response.success && response.data) {
-        set({ user: response.data })
+        set({ user: response.data as User })
       }
     } catch (error) {
       console.error('Error refreshing user:', error)

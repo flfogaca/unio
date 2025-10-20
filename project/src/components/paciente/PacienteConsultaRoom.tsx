@@ -1,11 +1,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { StatusBadge } from '@/components/ui/StatusBadge'
+import { ConfirmModal } from '@/components/ui/Modal'
+import { ConsultationEndModal } from '@/components/ui/ConsultationEndModal'
 import { useQueueStore } from '@/stores/queue'
 import { useChatStore, initializeConsultationChat, disconnectChat } from '@/stores/chat'
 import { useAuthStore } from '@/stores/auth'
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { webrtcService } from '@/lib/webrtc'
+import { queueSocketService } from '@/lib/queueSocket'
 import { 
   Video, 
   VideoOff, 
@@ -13,10 +16,8 @@ import {
   MicOff, 
   Phone, 
   FileText, 
-  User,
   Camera,
   Share,
-  Calendar,
   MessageSquare,
   ArrowLeft,
   Clock
@@ -27,7 +28,7 @@ interface PacienteConsultaRoomProps {
 }
 
 export function PacienteConsultaRoom({ consultaId }: PacienteConsultaRoomProps) {
-  const { items, fetchQueue } = useQueueStore()
+  const { items, fetchQueue, finalizarConsulta } = useQueueStore()
   const { user } = useAuthStore()
   const { sendMessage } = useChatStore()
   const messages = useChatStore(state => state.messages)
@@ -48,6 +49,15 @@ export function PacienteConsultaRoom({ consultaId }: PacienteConsultaRoomProps) 
   const [localVideoRef, setLocalVideoRef] = useState<HTMLVideoElement | null>(null)
   const [remoteVideoRef, setRemoteVideoRef] = useState<HTMLVideoElement | null>(null)
   const [webrtcInitialized, setWebrtcInitialized] = useState(false)
+  
+  // Estados dos modais
+  const [showConfirmEndModal, setShowConfirmEndModal] = useState(false)
+  const [showEndModal, setShowEndModal] = useState(false)
+  const [endModalData, setEndModalData] = useState<{
+    finishedBy: string
+    finishedByRole: 'paciente' | 'profissional'
+    duration: string
+  } | null>(null)
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -139,6 +149,67 @@ export function PacienteConsultaRoom({ consultaId }: PacienteConsultaRoomProps) 
     return () => clearInterval(interval)
   }, [fetchQueue])
 
+  // Conectar ao WebSocket de fila
+  useEffect(() => {
+    const token = localStorage.getItem('token')
+    if (user && token) {
+      queueSocketService.connect(token)
+      queueSocketService.joinUserRoom(user.id)
+    }
+
+    return () => {
+      if (user) {
+        queueSocketService.leaveUserRoom(user.id)
+      }
+    }
+  }, [user])
+
+  // Escutar evento de consulta finalizada via WebSocket
+  useEffect(() => {
+    console.log('🎯 Paciente: Configurando listener para consultation-finished')
+    
+    const handleConsultationFinished = (data: any) => {
+      console.log('🔔 Paciente: Consulta finalizada (WebSocket):', data)
+      console.log('🔔 Paciente: ConsultaId recebida:', data.consultationId, 'vs atual:', consultaId)
+      
+      if (data.consultationId === consultaId) {
+        console.log('✅ Paciente: Consulta corresponde, processando...')
+        
+        // Mostrar modal informativo
+        setEndModalData({
+          finishedBy: data.finishedBy || 'Usuário',
+          finishedByRole: data.finishedByRole || 'profissional',
+          duration: data.duration || '0min 0s'
+        })
+        setShowEndModal(true)
+        
+        // Desconectar chat e vídeo
+        disconnectChat(consultaId)
+        webrtcService.cleanup()
+        
+        // Se deve redirecionar automaticamente (quando profissional finaliza)
+        if (data.shouldRedirect && data.redirectTo) {
+          console.log('🚀 Paciente: Redirecionando para:', data.redirectTo)
+          setTimeout(() => {
+            console.log('🚀 Paciente: Executando redirecionamento...')
+            window.location.href = data.redirectTo
+          }, 3000) // Aguardar 3 segundos para o usuário ver o modal
+        } else {
+          console.log('ℹ️ Paciente: Sem redirecionamento automático')
+        }
+      } else {
+        console.log('❌ Paciente: Consulta não corresponde')
+      }
+    }
+
+    queueSocketService.on('consultation-finished', handleConsultationFinished)
+
+    return () => {
+      console.log('🧹 Paciente: Removendo listener consultation-finished')
+      queueSocketService.off('consultation-finished', handleConsultationFinished)
+    }
+  }, [consultaId])
+
   if (!consulta) {
     return (
       <div className="max-w-4xl mx-auto">
@@ -182,17 +253,41 @@ export function PacienteConsultaRoom({ consultaId }: PacienteConsultaRoomProps) 
     }
   }
 
-  const handleEndCall = () => {
-    if (window.confirm('Tem certeza que deseja sair da consulta?')) {
-      console.log('🚪 Paciente saindo da consulta:', consultaId)
+  const handleConfirmEnd = async () => {
+    console.log('🚪 Paciente finalizando consulta:', consultaId)
+    
+    try {
+      // Emitir evento via WebSocket para notificar instantaneamente
+      if (queueSocketService.isConnected() && user) {
+        queueSocketService.emit('finish-consultation', {
+          consultationId: consultaId,
+          notes: 'Finalizado pelo paciente'
+        })
+      }
+
+      // Finalizar a consulta via API
+      await finalizarConsulta(consultaId)
+      console.log('✅ Consulta finalizada pelo paciente')
       
-      // Desconectar chat
-      disconnectChat(consultaId)
-      console.log('🔌 Chat desconectado')
+      // Mostrar modal de sucesso
+      setEndModalData({
+        finishedBy: user?.name || 'Paciente',
+        finishedByRole: 'paciente',
+        duration: '0min 0s' // Será calculado pelo backend
+      })
+      setShowEndModal(true)
       
-      alert('Você saiu da consulta. Aguarde o profissional finalizar.')
-      window.location.hash = '/paciente'
+      // O modal será exibido automaticamente pelo evento WebSocket
+    } catch (error) {
+      console.error('❌ Erro ao finalizar consulta:', error)
+      alert('Erro ao finalizar consulta. Tente novamente.')
     }
+  }
+
+  const handleCloseEndModal = () => {
+    setShowEndModal(false)
+    // Limpar hash e usar pathname limpo
+    window.location.href = '/paciente'
   }
 
   return (
@@ -218,7 +313,7 @@ export function PacienteConsultaRoom({ consultaId }: PacienteConsultaRoomProps) 
             <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
             <span className="text-sm font-medium">AO VIVO {getDurationString()}</span>
           </div>
-          <StatusBadge status={consulta.status} />
+          <StatusBadge status={consulta.status as any} />
         </div>
       </div>
 
@@ -278,7 +373,7 @@ export function PacienteConsultaRoom({ consultaId }: PacienteConsultaRoomProps) 
                 {/* Controls */}
                 <div className="p-4 bg-gray-50 flex justify-center gap-4">
                   <Button
-                    variant={videoEnabled ? "default" : "secondary"}
+                    variant={videoEnabled ? "primary" : "secondary"}
                     size="sm"
                     onClick={() => {
                       const newState = !videoEnabled
@@ -292,7 +387,7 @@ export function PacienteConsultaRoom({ consultaId }: PacienteConsultaRoomProps) 
                     {videoEnabled ? 'Vídeo' : 'Sem Vídeo'}
                   </Button>
                   <Button
-                    variant={audioEnabled ? "default" : "secondary"}
+                    variant={audioEnabled ? "primary" : "secondary"}
                     size="sm"
                     onClick={() => {
                       const newState = !audioEnabled
@@ -306,13 +401,14 @@ export function PacienteConsultaRoom({ consultaId }: PacienteConsultaRoomProps) 
                     {audioEnabled ? 'Áudio' : 'Mudo'}
                   </Button>
                   <Button
-                    variant="destructive"
+                    variant="secondary"
                     size="sm"
-                    onClick={handleEndCall}
-                    className="flex items-center gap-2"
+                    onClick={() => setShowConfirmEndModal(true)}
+                    className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white"
+                    title="Finalizar consulta"
                   >
                     <Phone className="h-4 w-4" />
-                    Encerrar
+                    Finalizar Consulta
                   </Button>
                 </div>
               </CardContent>
@@ -397,7 +493,7 @@ export function PacienteConsultaRoom({ consultaId }: PacienteConsultaRoomProps) 
               </div>
               <div className="flex justify-between">
                 <span className="text-sm font-medium">Status:</span>
-                <StatusBadge status={consulta.status} />
+                <StatusBadge status={consulta.status as any} />
               </div>
             </CardContent>
           </Card>
@@ -427,6 +523,29 @@ export function PacienteConsultaRoom({ consultaId }: PacienteConsultaRoomProps) 
           </Card>
         </div>
       </div>
+
+      {/* Modal de Confirmação */}
+      <ConfirmModal
+        isOpen={showConfirmEndModal}
+        onClose={() => setShowConfirmEndModal(false)}
+        onConfirm={handleConfirmEnd}
+        title="Finalizar Consulta"
+        message="Tem certeza que deseja finalizar a consulta? O profissional também será notificado."
+        confirmText="Finalizar"
+        cancelText="Cancelar"
+        variant="danger"
+      />
+
+      {/* Modal de Consulta Finalizada */}
+      {endModalData && (
+        <ConsultationEndModal
+          isOpen={showEndModal}
+          onClose={handleCloseEndModal}
+          finishedBy={endModalData.finishedBy}
+          finishedByRole={endModalData.finishedByRole}
+          duration={endModalData.duration}
+        />
+      )}
     </div>
   )
 }
