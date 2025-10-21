@@ -17,13 +17,15 @@ export class MedicalDoctorService {
 
   constructor(
     private readonly prismaService: PrismaService,
-    private readonly redisService: RedisService,
+    private readonly redisService: RedisService
   ) {}
 
   /**
    * Create urgent medical consultation
    */
-  async createUrgentConsultation(request: MedicalConsultationRequest): Promise<any> {
+  async createUrgentConsultation(
+    request: MedicalConsultationRequest
+  ): Promise<any> {
     try {
       // Create consultation
       const consultation = await this.prismaService.consultation.create({
@@ -54,7 +56,9 @@ export class MedicalDoctorService {
   /**
    * Create scheduled medical consultation
    */
-  async createScheduledConsultation(request: MedicalConsultationRequest): Promise<any> {
+  async createScheduledConsultation(
+    request: MedicalConsultationRequest
+  ): Promise<any> {
     try {
       // Create consultation
       const consultation = await this.prismaService.consultation.create({
@@ -146,10 +150,13 @@ export class MedicalDoctorService {
    * Generate UUID
    */
   private generateUUID(): string {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-      const r = Math.random() * 16 | 0;
-      const v = c == 'x' ? r : (r & 0x3 | 0x8);
-      return v.toString(16);
-    });
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(
+      /[xy]/g,
+      function (c) {
+        const r = (Math.random() * 16) | 0;
+        const v = c == 'x' ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+      }
+    );
   }
 }

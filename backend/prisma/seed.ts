@@ -1,4 +1,10 @@
-import { PrismaClient, UserRole, Specialty, ConsultationStatus, ConsultationPriority } from '@prisma/client';
+import {
+  PrismaClient,
+  UserRole,
+  Specialty,
+  ConsultationStatus,
+  ConsultationPriority,
+} from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -278,10 +284,18 @@ async function main() {
   console.log('✅ Database seed completed successfully!');
   console.log('\n📋 Created users:');
   console.log(`- Admin: ${admin.email} (password: 123456)`);
-  console.log(`- 2 Dentistas: dentista1@unio.com, dentista2@unio.com (password: 123456)`);
-  console.log(`- 2 Psicólogos: psicologo1@unio.com, psicologo2@unio.com (password: 123456)`);
-  console.log(`- 2 Médicos Clínicos: medico1@unio.com, medico2@unio.com (password: 123456)`);
-  console.log(`- 9 Pacientes: paciente1@unio.com até paciente9@unio.com (password: 123456)`);
+  console.log(
+    `- 2 Dentistas: dentista1@unio.com, dentista2@unio.com (password: 123456)`
+  );
+  console.log(
+    `- 2 Psicólogos: psicologo1@unio.com, psicologo2@unio.com (password: 123456)`
+  );
+  console.log(
+    `- 2 Médicos Clínicos: medico1@unio.com, medico2@unio.com (password: 123456)`
+  );
+  console.log(
+    `- 9 Pacientes: paciente1@unio.com até paciente9@unio.com (password: 123456)`
+  );
   console.log('\n🏥 Specialties available:');
   console.log('- Dentista');
   console.log('- Psicólogo');
@@ -289,7 +303,7 @@ async function main() {
 }
 
 main()
-  .catch((e) => {
+  .catch(e => {
     console.error('❌ Error during seed:', e);
     process.exit(1);
   })

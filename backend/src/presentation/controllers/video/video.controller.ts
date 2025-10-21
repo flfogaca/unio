@@ -1,12 +1,10 @@
+import { Controller, Get, Post, Param, UseGuards, Query } from '@nestjs/common';
 import {
-  Controller,
-  Get,
-  Post,
-  Param,
-  UseGuards,
-  Query,
-} from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { VideoService } from '@/application/services/video.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '@/shared/decorators/current-user.decorator';
@@ -24,19 +22,19 @@ export class VideoController {
   @ApiResponse({ status: 404, description: 'Consultation not found' })
   async createRoom(
     @Param('consultationId') consultationId: string,
-    @CurrentUser() user: any,
+    @CurrentUser() user: any
   ) {
     return this.videoService.createRoom(consultationId);
   }
 
   @Get('room/:roomId')
   @ApiOperation({ summary: 'Get video call room details' })
-  @ApiResponse({ status: 200, description: 'Room details retrieved successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Room details retrieved successfully',
+  })
   @ApiResponse({ status: 404, description: 'Room not found' })
-  async getRoom(
-    @Param('roomId') roomId: string,
-    @CurrentUser() user: any,
-  ) {
+  async getRoom(@Param('roomId') roomId: string, @CurrentUser() user: any) {
     return this.videoService.getRoom(roomId);
   }
 
@@ -47,7 +45,7 @@ export class VideoController {
   async joinRoom(
     @Param('roomId') roomId: string,
     @Query('socketId') socketId: string,
-    @CurrentUser() user: any,
+    @CurrentUser() user: any
   ) {
     return this.videoService.joinRoom(roomId, socketId, user);
   }
@@ -55,16 +53,16 @@ export class VideoController {
   @Post('room/:roomId/leave')
   @ApiOperation({ summary: 'Leave video call room' })
   @ApiResponse({ status: 200, description: 'Left room successfully' })
-  async leaveRoom(
-    @Param('roomId') roomId: string,
-    @CurrentUser() user: any,
-  ) {
+  async leaveRoom(@Param('roomId') roomId: string, @CurrentUser() user: any) {
     return this.videoService.leaveRoom(roomId, user);
   }
 
   @Get('rooms/active')
   @ApiOperation({ summary: 'Get active video rooms for user' })
-  @ApiResponse({ status: 200, description: 'Active rooms retrieved successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Active rooms retrieved successfully',
+  })
   async getActiveRooms(@CurrentUser() user: any) {
     return this.videoService.getActiveRooms(user);
   }

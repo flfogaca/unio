@@ -10,7 +10,13 @@ import {
   Query,
   ValidationPipe,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { UsersService } from '@/application/services/users.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '@/shared/decorators/roles.decorator';
@@ -36,7 +42,7 @@ export class UsersController {
     @Query('page') page?: number,
     @Query('limit') limit?: number,
     @Query('role') role?: UserRole,
-    @Query('search') search?: string,
+    @Query('search') search?: string
   ) {
     return this.usersService.findAll();
   }
@@ -67,7 +73,7 @@ export class UsersController {
   async update(
     @Param('id') id: string,
     @Body(ValidationPipe) updateUserDto: any,
-    @CurrentUser() currentUser: any,
+    @CurrentUser() currentUser: any
   ) {
     // Users can only update their own profile, unless they're admin
     if (currentUser.role !== UserRole.admin && currentUser.id !== id) {
@@ -89,7 +95,10 @@ export class UsersController {
   @Roles(UserRole.admin)
   @ApiOperation({ summary: 'Activate/deactivate user (Admin only)' })
   @ApiResponse({ status: 200, description: 'User status updated successfully' })
-  async toggleActive(@Param('id') id: string, @Body('isActive') isActive: boolean) {
+  async toggleActive(
+    @Param('id') id: string,
+    @Body('isActive') isActive: boolean
+  ) {
     return this.usersService.toggleActive(id);
   }
 }

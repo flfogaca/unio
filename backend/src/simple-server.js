@@ -4,26 +4,28 @@ const cors = require('cors');
 const app = express();
 const PORT = 3000;
 
-app.use(cors({
-  origin: 'http://localhost:5173',
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: 'http://localhost:5173',
+    credentials: true,
+  })
+);
 
 app.use(express.json());
 
 // Rota de teste
 app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
+  res.json({
+    status: 'OK',
     message: 'Backend funcionando!',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 });
 
 // Rota de autenticação simulada
 app.post('/api/auth/login', (req, res) => {
   const { email, password } = req.body;
-  
+
   // Simulação de login
   const users = {
     'admin@unio.com': { id: '1', role: 'admin', name: 'Admin' },
@@ -34,9 +36,9 @@ app.post('/api/auth/login', (req, res) => {
     'patient2@unio.com': { id: '6', role: 'paciente', name: 'Pedro Mendes' },
     'patient3@unio.com': { id: '7', role: 'paciente', name: 'Julia Ferreira' },
   };
-  
+
   const user = users[email];
-  
+
   if (user && password === '123') {
     res.json({
       access_token: 'fake-jwt-token',
@@ -45,7 +47,7 @@ app.post('/api/auth/login', (req, res) => {
         email: email,
         name: user.name,
         role: user.role,
-      }
+      },
     });
   } else {
     res.status(401).json({ message: 'Credenciais inválidas' });
@@ -61,7 +63,7 @@ app.get('/api/specialties', (req, res) => {
       description: 'Atendimento psicológico urgente e agendado',
       waitTime: 15,
       availableProfessionals: 2,
-      queueLength: 3
+      queueLength: 3,
     },
     {
       id: 'dentista',
@@ -69,7 +71,7 @@ app.get('/api/specialties', (req, res) => {
       description: 'Consultas odontológicas e emergências',
       waitTime: 30,
       availableProfessionals: 1,
-      queueLength: 1
+      queueLength: 1,
     },
     {
       id: 'medico-clinico',
@@ -77,8 +79,8 @@ app.get('/api/specialties', (req, res) => {
       description: 'Consultas médicas e emergências',
       waitTime: 45,
       availableProfessionals: 1,
-      queueLength: 2
-    }
+      queueLength: 2,
+    },
   ]);
 });
 
@@ -94,8 +96,8 @@ app.get('/api/consultations', (req, res) => {
       description: 'Crise de ansiedade',
       createdAt: new Date().toISOString(),
       position: 1,
-      estimatedWaitTime: 15
-    }
+      estimatedWaitTime: 15,
+    },
   ]);
 });
 

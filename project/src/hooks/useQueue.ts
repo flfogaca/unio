@@ -57,12 +57,12 @@ export const useQueue = (): QueueHook => {
       setState(prev => ({ ...prev, isConnected: false }));
     });
 
-    socket.on('error', (error) => {
+    socket.on('error', error => {
       console.error('Queue socket error:', error);
     });
 
     // Queue events
-    socket.on('queue-status', (data) => {
+    socket.on('queue-status', data => {
       console.log('Queue status updated:', data);
       setState(prev => ({
         ...prev,
@@ -73,7 +73,7 @@ export const useQueue = (): QueueHook => {
       }));
     });
 
-    socket.on('queue-updated', (data) => {
+    socket.on('queue-updated', data => {
       console.log('Queue updated:', data);
       setState(prev => ({
         ...prev,
@@ -85,41 +85,49 @@ export const useQueue = (): QueueHook => {
     });
 
     // Consultation events
-    socket.on('consultation-assumed', (data) => {
+    socket.on('consultation-assumed', data => {
       console.log('Consultation assumed:', data);
       setState(prev => ({
         ...prev,
-        consultations: prev.consultations.filter(c => c.id !== data.consultationId),
+        consultations: prev.consultations.filter(
+          c => c.id !== data.consultationId
+        ),
         myConsultations: [...prev.myConsultations, data.consultation],
       }));
     });
 
-    socket.on('consultation-started', (data) => {
+    socket.on('consultation-started', data => {
       console.log('Consultation started:', data);
       setState(prev => ({
         ...prev,
-        consultations: prev.consultations.map(c => 
-          c.id === data.consultationId 
-            ? { ...c, status: 'em_atendimento', professionalId: data.professionalId }
+        consultations: prev.consultations.map(c =>
+          c.id === data.consultationId
+            ? {
+                ...c,
+                status: 'em_atendimento',
+                professionalId: data.professionalId,
+              }
             : c
         ),
       }));
     });
 
-    socket.on('consultation-finished', (data) => {
+    socket.on('consultation-finished', data => {
       console.log('Consultation finished:', data);
       setState(prev => ({
         ...prev,
-        myConsultations: prev.myConsultations.filter(c => c.id !== data.consultationId),
+        myConsultations: prev.myConsultations.filter(
+          c => c.id !== data.consultationId
+        ),
       }));
     });
 
     // User events
-    socket.on('user-joined-queue', (data) => {
+    socket.on('user-joined-queue', data => {
       console.log('User joined queue:', data);
     });
 
-    socket.on('user-left-queue', (data) => {
+    socket.on('user-left-queue', data => {
       console.log('User left queue:', data);
     });
 
@@ -140,7 +148,9 @@ export const useQueue = (): QueueHook => {
   // Leave specialty queue
   const leaveSpecialtyQueue = useCallback(() => {
     if (socketRef.current && state.specialty) {
-      socketRef.current.emit('leave-specialty-queue', { specialty: state.specialty });
+      socketRef.current.emit('leave-specialty-queue', {
+        specialty: state.specialty,
+      });
       setState(prev => ({ ...prev, specialty: null }));
     }
   }, [state.specialty]);
@@ -153,16 +163,24 @@ export const useQueue = (): QueueHook => {
   }, []);
 
   // Finish consultation
-  const finishConsultation = useCallback((consultationId: string, notes?: string) => {
-    if (socketRef.current) {
-      socketRef.current.emit('finish-consultation', { consultationId, notes });
-    }
-  }, []);
+  const finishConsultation = useCallback(
+    (consultationId: string, notes?: string) => {
+      if (socketRef.current) {
+        socketRef.current.emit('finish-consultation', {
+          consultationId,
+          notes,
+        });
+      }
+    },
+    []
+  );
 
   // Refresh queue
   const refreshQueue = useCallback(() => {
     if (socketRef.current && state.specialty) {
-      socketRef.current.emit('request-queue-update', { specialty: state.specialty });
+      socketRef.current.emit('request-queue-update', {
+        specialty: state.specialty,
+      });
     }
   }, [state.specialty]);
 

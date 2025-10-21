@@ -18,7 +18,7 @@ export class TestController {
       }
 
       const passwordMatch = await bcrypt.compare(body.password, user.password);
-      
+
       return {
         userFound: !!user,
         passwordMatch,
@@ -27,8 +27,8 @@ export class TestController {
           cpf: user.cpf,
           email: user.email,
           name: user.name,
-          role: user.role
-        }
+          role: user.role,
+        },
       };
     } catch (error) {
       return { error: error.message };
@@ -43,8 +43,8 @@ export class TestController {
         cpf: true,
         email: true,
         name: true,
-        role: true
-      }
+        role: true,
+      },
     });
   }
 }

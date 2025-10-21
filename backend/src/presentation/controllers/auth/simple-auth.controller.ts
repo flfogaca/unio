@@ -10,7 +10,7 @@ import * as bcrypt from 'bcrypt';
 export class SimpleAuthController {
   constructor(
     private prismaService: PrismaService,
-    private jwtService: JwtService,
+    private jwtService: JwtService
   ) {}
 
   @Public()
@@ -26,19 +26,19 @@ export class SimpleAuthController {
       }
 
       const passwordMatch = await bcrypt.compare(body.password, user.password);
-      
+
       if (!passwordMatch) {
         return { success: false, message: 'Senha incorreta' };
       }
 
       const payload = { email: user.email, sub: user.id, role: user.role };
       const token = this.jwtService.sign(payload);
-      
+
       console.log('=== LOGIN SUCCESS ===');
       console.log('User:', user.email);
       console.log('Token generated:', token ? 'Yes' : 'No');
       console.log('Token length:', token ? token.length : 0);
-      
+
       return {
         success: true,
         data: {
@@ -64,10 +64,13 @@ export class SimpleAuthController {
       console.log('=== PROFILE ENDPOINT CALLED ===');
       console.log('User from JWT:', user); // Debug
       console.log('JWT Secret:', process.env.JWT_SECRET ? 'Set' : 'Not set'); // Debug
-      
+
       const userId = user.sub || user.id;
       if (!userId) {
-        return { success: false, message: 'ID do usuário não encontrado no token' };
+        return {
+          success: false,
+          message: 'ID do usuário não encontrado no token',
+        };
       }
 
       const userProfile = await this.prismaService.user.findUnique({

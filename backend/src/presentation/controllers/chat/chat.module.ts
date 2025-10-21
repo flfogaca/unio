@@ -10,4 +10,3 @@ import { DatabaseModule } from '../../../infrastructure/database/database.module
   exports: [ChatService],
 })
 export class ChatModule {}
-

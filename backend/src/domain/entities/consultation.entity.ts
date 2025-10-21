@@ -1,4 +1,8 @@
-import { BaseEntity, ConsultationStatus, ConsultationPriority } from '@/shared/types';
+import {
+  BaseEntity,
+  ConsultationStatus,
+  ConsultationPriority,
+} from '@/shared/types';
 
 export interface Consultation extends BaseEntity {
   patientId: string;

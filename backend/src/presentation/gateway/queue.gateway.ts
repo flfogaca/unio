@@ -32,14 +32,16 @@ export class QueueGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private readonly jwtService: JwtService,
     private readonly prismaService: PrismaService,
-    private readonly redisService: RedisService,
+    private readonly redisService: RedisService
   ) {}
 
   async handleConnection(client: AuthenticatedSocket) {
     try {
       // Extract token from handshake
-      const token = client.handshake.auth?.token || client.handshake.headers?.authorization?.replace('Bearer ', '');
-      
+      const token =
+        client.handshake.auth?.token ||
+        client.handshake.headers?.authorization?.replace('Bearer ', '');
+
       if (!token) {
         client.disconnect();
         return;
@@ -64,7 +66,9 @@ export class QueueGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (client.userId) {
       // Leave specialty room if joined
       if (client.specialty) {
-        await this.handleLeaveSpecialtyQueue(client, { specialty: client.specialty });
+        await this.handleLeaveSpecialtyQueue(client, {
+          specialty: client.specialty,
+        });
       }
 
       // Set user as offline
@@ -76,14 +80,16 @@ export class QueueGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('join-specialty-queue')
   async handleJoinSpecialtyQueue(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() data: { specialty: string },
+    @MessageBody() data: { specialty: string }
   ) {
     try {
       const { specialty } = data;
 
       // Leave previous specialty room if any
       if (client.specialty) {
-        await this.handleLeaveSpecialtyQueue(client, { specialty: client.specialty });
+        await this.handleLeaveSpecialtyQueue(client, {
+          specialty: client.specialty,
+        });
       }
 
       // Join specialty room
@@ -92,7 +98,7 @@ export class QueueGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       // Get current queue status
       const queueStatus = await this.getQueueStatus(specialty);
-      
+
       client.emit('queue-status', queueStatus);
 
       // Notify others about user joining queue
@@ -101,7 +107,6 @@ export class QueueGateway implements OnGatewayConnection, OnGatewayDisconnect {
         userRole: client.userRole,
         specialty,
       });
-
     } catch (error) {
       console.error('Error joining specialty queue:', error);
       client.emit('error', { message: 'Failed to join queue' });
@@ -111,14 +116,14 @@ export class QueueGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('leave-specialty-queue')
   async handleLeaveSpecialtyQueue(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() data: { specialty: string },
+    @MessageBody() data: { specialty: string }
   ) {
     try {
       const { specialty } = data;
 
       if (client.specialty === specialty) {
         await client.leave(`specialty:${specialty}`);
-        
+
         // Notify others about user leaving queue
         client.to(`specialty:${specialty}`).emit('user-left-queue', {
           userId: client.userId,
@@ -136,14 +141,16 @@ export class QueueGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('assume-consultation')
   async handleAssumeConsultation(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() data: { consultationId: string },
+    @MessageBody() data: { consultationId: string }
   ) {
     try {
       const { consultationId } = data;
 
       // Verify user is a professional
       if (!['dentista', 'psicologo', 'medico'].includes(client.userRole!)) {
-        client.emit('error', { message: 'Only professionals can assume consultations' });
+        client.emit('error', {
+          message: 'Only professionals can assume consultations',
+        });
         return;
       }
 
@@ -169,9 +176,9 @@ export class QueueGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       // Check specialty match
       const specialtyMapping = {
-        'psicologo': 'psicologo',
-        'dentista': 'dentista',
-        'medico': 'medico_clinico',
+        psicologo: 'psicologo',
+        dentista: 'dentista',
+        medico: 'medico_clinico',
       };
 
       if (consultation.specialty !== specialtyMapping[client.userRole!]) {
@@ -199,22 +206,25 @@ export class QueueGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const queueStatus = await this.getQueueStatus(consultation.specialty);
 
       // Broadcast to specialty room
-      this.server.to(`specialty:${consultation.specialty}`).emit('consultation-assumed', {
-        consultationId,
-        professionalId: client.userId,
-        consultation: updatedConsultation,
-        queueStatus,
-      });
+      this.server
+        .to(`specialty:${consultation.specialty}`)
+        .emit('consultation-assumed', {
+          consultationId,
+          professionalId: client.userId,
+          consultation: updatedConsultation,
+          queueStatus,
+        });
 
       // Notify patient specifically
-      this.server.to(`user:${consultation.patientId}`).emit('consultation-started', {
-        consultationId,
-        professionalId: client.userId,
-        consultation: updatedConsultation,
-      });
+      this.server
+        .to(`user:${consultation.patientId}`)
+        .emit('consultation-started', {
+          consultationId,
+          professionalId: client.userId,
+          consultation: updatedConsultation,
+        });
 
       client.emit('consultation-assumed-success', updatedConsultation);
-
     } catch (error) {
       console.error('Error assuming consultation:', error);
       client.emit('error', { message: 'Failed to assume consultation' });
@@ -224,7 +234,7 @@ export class QueueGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('finish-consultation')
   async handleFinishConsultation(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() data: { consultationId: string; notes?: string },
+    @MessageBody() data: { consultationId: string; notes?: string }
   ) {
     try {
       const { consultationId, notes } = data;
@@ -258,7 +268,9 @@ export class QueueGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
 
       // Calcular duração da consulta
-      const startTime = consultation.startedAt ? new Date(consultation.startedAt) : new Date();
+      const startTime = consultation.startedAt
+        ? new Date(consultation.startedAt)
+        : new Date();
       const endTime = new Date();
       const durationMs = endTime.getTime() - startTime.getTime();
       const durationMinutes = Math.floor(durationMs / 60000);
@@ -266,7 +278,7 @@ export class QueueGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const durationString = `${durationMinutes}min ${durationSeconds}s`;
 
       // Obter informações de quem finalizou
-      const finishedByName = isProfessional 
+      const finishedByName = isProfessional
         ? consultation.professional?.name || 'Profissional'
         : consultation.patient?.name || 'Paciente';
       const finishedByRole = isProfessional ? 'profissional' : 'paciente';
@@ -302,36 +314,49 @@ export class QueueGateway implements OnGatewayConnection, OnGatewayDisconnect {
         queueStatus,
         redirectTo: {
           patient: '/paciente',
-          professional: isProfessional ? '/dentista' : null // Se paciente finalizou, profissional não precisa redirecionar
-        }
+          professional: isProfessional ? '/dentista' : null, // Se paciente finalizou, profissional não precisa redirecionar
+        },
       };
 
       // Broadcast to specialty room
-      this.server.to(`specialty:${consultation.specialty}`).emit('consultation-finished', finishData);
+      this.server
+        .to(`specialty:${consultation.specialty}`)
+        .emit('consultation-finished', finishData);
 
       // Notificar o paciente com dados específicos
       const patientData = {
         ...finishData,
         shouldRedirect: true,
-        redirectTo: '/paciente'
+        redirectTo: '/paciente',
       };
-      console.log('📤 Enviando para paciente:', consultation.patientId, patientData);
-      this.server.to(`user:${consultation.patientId}`).emit('consultation-finished', patientData);
+      console.log(
+        '📤 Enviando para paciente:',
+        consultation.patientId,
+        patientData
+      );
+      this.server
+        .to(`user:${consultation.patientId}`)
+        .emit('consultation-finished', patientData);
 
       // Notificar o profissional (se houver) com dados específicos
       if (consultation.professionalId) {
         const professionalData = {
           ...finishData,
           shouldRedirect: true,
-          redirectTo: '/dentista'
+          redirectTo: '/dentista',
         };
-        console.log('📤 Enviando para profissional:', consultation.professionalId, professionalData);
-        this.server.to(`user:${consultation.professionalId}`).emit('consultation-finished', professionalData);
+        console.log(
+          '📤 Enviando para profissional:',
+          consultation.professionalId,
+          professionalData
+        );
+        this.server
+          .to(`user:${consultation.professionalId}`)
+          .emit('consultation-finished', professionalData);
       }
 
       // Confirmar para quem finalizou
       client.emit('consultation-finished-success', finishData);
-
     } catch (error) {
       console.error('Error finishing consultation:', error);
       client.emit('error', { message: 'Failed to finish consultation' });
@@ -341,7 +366,7 @@ export class QueueGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('request-queue-update')
   async handleRequestQueueUpdate(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() data: { specialty: string },
+    @MessageBody() data: { specialty: string }
   ) {
     try {
       const { specialty } = data;
@@ -356,7 +381,7 @@ export class QueueGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('join-user-room')
   async handleJoinUserRoom(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() data: { userId: string },
+    @MessageBody() data: { userId: string }
   ) {
     try {
       const { userId } = data;
@@ -378,7 +403,7 @@ export class QueueGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('leave-user-room')
   async handleLeaveUserRoom(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() data: { userId: string },
+    @MessageBody() data: { userId: string }
   ) {
     try {
       const { userId } = data;
@@ -400,11 +425,16 @@ export class QueueGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   private async getQueueStatus(specialty: string) {
-    const consultations = await this.prismaService.findActiveConsultationsBySpecialty(specialty);
-    
-    const queueLength = consultations.filter(c => c.status === 'em_fila').length;
-    const inProgress = consultations.filter(c => c.status === 'em_atendimento').length;
-    
+    const consultations =
+      await this.prismaService.findActiveConsultationsBySpecialty(specialty);
+
+    const queueLength = consultations.filter(
+      c => c.status === 'em_fila'
+    ).length;
+    const inProgress = consultations.filter(
+      c => c.status === 'em_atendimento'
+    ).length;
+
     const onlineProfessionals = await this.prismaService.user.count({
       where: {
         role: this.getRoleForSpecialty(specialty) as any,
@@ -475,18 +505,21 @@ export class QueueGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   private getRoleForSpecialty(specialty: string): string {
     const mapping = {
-      'psicologo': 'psicologo',
-      'dentista': 'dentista',
-      'medico_clinico': 'medico',
+      psicologo: 'psicologo',
+      dentista: 'dentista',
+      medico_clinico: 'medico',
     };
     return mapping[specialty] || specialty;
   }
 
   private generateUUID(): string {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-      const r = Math.random() * 16 | 0;
-      const v = c === 'x' ? r : (r & 0x3 | 0x8);
-      return v.toString(16);
-    });
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(
+      /[xy]/g,
+      function (c) {
+        const r = (Math.random() * 16) | 0;
+        const v = c === 'x' ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+      }
+    );
   }
 }

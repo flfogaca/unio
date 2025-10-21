@@ -35,14 +35,16 @@ export class VideoGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly prismaService: PrismaService,
-    private readonly redisService: RedisService,
+    private readonly redisService: RedisService
   ) {}
 
   async handleConnection(client: AuthenticatedSocket) {
     try {
       // Extract token from handshake
-      const token = client.handshake.auth?.token || client.handshake.headers?.authorization?.replace('Bearer ', '');
-      
+      const token =
+        client.handshake.auth?.token ||
+        client.handshake.headers?.authorization?.replace('Bearer ', '');
+
       if (!token) {
         client.disconnect();
         return;
@@ -79,7 +81,7 @@ export class VideoGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('join-room')
   async handleJoinRoom(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() data: { roomId: string; consultationId: string },
+    @MessageBody() data: { roomId: string; consultationId: string }
   ) {
     try {
       const { roomId, consultationId } = data;
@@ -99,7 +101,13 @@ export class VideoGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
 
       // Check if user can access this consultation
-      if (!this.canAccessConsultation(consultation, client.userId!, client.userRole!)) {
+      if (
+        !this.canAccessConsultation(
+          consultation,
+          client.userId!,
+          client.userRole!
+        )
+      ) {
         client.emit('error', { message: 'Access denied' });
         return;
       }
@@ -130,25 +138,28 @@ export class VideoGateway implements OnGatewayConnection, OnGatewayDisconnect {
       client.roomId = roomId;
 
       // Get existing participants
-      const participants = await this.prismaService.videoCallParticipant.findMany({
-        where: {
-          roomId: room.id,
-          leftAt: null,
-        },
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              role: true,
+      const participants =
+        await this.prismaService.videoCallParticipant.findMany({
+          where: {
+            roomId: room.id,
+            leftAt: null,
+          },
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                role: true,
+              },
             },
           },
-        },
-      });
+        });
 
       // Add/Update participant record
-      const existingParticipant = participants.find(p => p.userId === client.userId);
-      
+      const existingParticipant = participants.find(
+        p => p.userId === client.userId
+      );
+
       if (existingParticipant) {
         await this.prismaService.videoCallParticipant.update({
           where: { id: existingParticipant.id },
@@ -197,7 +208,6 @@ export class VideoGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       // Broadcast updated participant list to all room members
       this.server.to(roomId).emit('participants-updated', updatedParticipants);
-
     } catch (error) {
       console.error('Error joining room:', error);
       client.emit('error', { message: 'Failed to join room' });
@@ -207,22 +217,27 @@ export class VideoGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('leave-room')
   async handleLeaveRoom(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() data: { roomId: string },
+    @MessageBody() data: { roomId: string }
   ) {
     try {
       const { roomId } = data;
 
       if (client.roomId === roomId) {
         await client.leave(roomId);
-        
+
         // Update participant record
-        const participant = await this.prismaService.videoCallParticipant.findFirst({
-          where: {
-            roomId: (await this.prismaService.videoCallRoom.findUnique({ where: { roomId } }))?.id,
-            userId: client.userId,
-            leftAt: null,
-          },
-        });
+        const participant =
+          await this.prismaService.videoCallParticipant.findFirst({
+            where: {
+              roomId: (
+                await this.prismaService.videoCallRoom.findUnique({
+                  where: { roomId },
+                })
+              )?.id,
+              userId: client.userId,
+              leftAt: null,
+            },
+          });
 
         if (participant) {
           await this.prismaService.videoCallParticipant.update({
@@ -239,7 +254,9 @@ export class VideoGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
         // Broadcast updated participant list
         const updatedParticipants = await this.getRoomParticipants(roomId);
-        this.server.to(roomId).emit('participants-updated', updatedParticipants);
+        this.server
+          .to(roomId)
+          .emit('participants-updated', updatedParticipants);
 
         client.roomId = undefined;
       }
@@ -251,10 +268,15 @@ export class VideoGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('webrtc-offer')
   async handleWebRTCOffer(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() data: { roomId: string; offer: RTCSessionDescriptionInit; targetUserId: string },
+    @MessageBody()
+    data: {
+      roomId: string;
+      offer: RTCSessionDescriptionInit;
+      targetUserId: string;
+    }
   ) {
     const { roomId, offer, targetUserId } = data;
-    
+
     if (client.roomId !== roomId) {
       return;
     }
@@ -269,10 +291,15 @@ export class VideoGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('webrtc-answer')
   async handleWebRTCAnswer(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() data: { roomId: string; answer: RTCSessionDescriptionInit; targetUserId: string },
+    @MessageBody()
+    data: {
+      roomId: string;
+      answer: RTCSessionDescriptionInit;
+      targetUserId: string;
+    }
   ) {
     const { roomId, answer, targetUserId } = data;
-    
+
     if (client.roomId !== roomId) {
       return;
     }
@@ -287,10 +314,15 @@ export class VideoGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('webrtc-ice-candidate')
   async handleWebRTCIceCandidate(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() data: { roomId: string; candidate: RTCIceCandidateInit; targetUserId: string },
+    @MessageBody()
+    data: {
+      roomId: string;
+      candidate: RTCIceCandidateInit;
+      targetUserId: string;
+    }
   ) {
     const { roomId, candidate, targetUserId } = data;
-    
+
     if (client.roomId !== roomId) {
       return;
     }
@@ -305,10 +337,10 @@ export class VideoGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('toggle-camera')
   async handleToggleCamera(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() data: { roomId: string; enabled: boolean },
+    @MessageBody() data: { roomId: string; enabled: boolean }
   ) {
     const { roomId, enabled } = data;
-    
+
     if (client.roomId !== roomId) {
       return;
     }
@@ -323,10 +355,10 @@ export class VideoGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('toggle-microphone')
   async handleToggleMicrophone(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() data: { roomId: string; enabled: boolean },
+    @MessageBody() data: { roomId: string; enabled: boolean }
   ) {
     const { roomId, enabled } = data;
-    
+
     if (client.roomId !== roomId) {
       return;
     }
@@ -341,10 +373,11 @@ export class VideoGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('send-message')
   async handleSendMessage(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() data: { roomId: string; message: string; type: 'text' | 'system' },
+    @MessageBody()
+    data: { roomId: string; message: string; type: 'text' | 'system' }
   ) {
     const { roomId, message, type } = data;
-    
+
     if (client.roomId !== roomId) {
       return;
     }
@@ -361,13 +394,17 @@ export class VideoGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('heartbeat')
   async handleHeartbeat(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() data: { roomId: string },
+    @MessageBody() data: { roomId: string }
   ) {
     const { roomId } = data;
-    
+
     if (client.roomId === roomId) {
       // Update last activity in Redis
-      await this.redisService.set(`user:activity:${client.userId}`, Date.now().toString(), 300);
+      await this.redisService.set(
+        `user:activity:${client.userId}`,
+        Date.now().toString(),
+        300
+      );
     }
   }
 
@@ -378,21 +415,23 @@ export class VideoGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     if (!room) return [];
 
-    const participants = await this.prismaService.videoCallParticipant.findMany({
-      where: {
-        roomId: room.id,
-        leftAt: null,
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            role: true,
+    const participants = await this.prismaService.videoCallParticipant.findMany(
+      {
+        where: {
+          roomId: room.id,
+          leftAt: null,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              role: true,
+            },
           },
         },
-      },
-    });
+      }
+    );
 
     return participants.map(p => ({
       userId: p.userId,
@@ -403,7 +442,11 @@ export class VideoGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }));
   }
 
-  private canAccessConsultation(consultation: any, userId: string, userRole: string): boolean {
+  private canAccessConsultation(
+    consultation: any,
+    userId: string,
+    userRole: string
+  ): boolean {
     // Patient can access their own consultations
     if (userRole === 'paciente' && consultation.patientId === userId) {
       return true;
@@ -423,10 +466,13 @@ export class VideoGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   private generateUUID(): string {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-      const r = Math.random() * 16 | 0;
-      const v = c === 'x' ? r : (r & 0x3 | 0x8);
-      return v.toString(16);
-    });
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(
+      /[xy]/g,
+      function (c) {
+        const r = (Math.random() * 16) | 0;
+        const v = c === 'x' ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+      }
+    );
   }
 }

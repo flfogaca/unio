@@ -27,7 +27,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     if (exception instanceof HttpException) {
       status = exception.getStatus();
       const exceptionResponse = exception.getResponse();
-      
+
       if (typeof exceptionResponse === 'string') {
         message = exceptionResponse;
       } else if (typeof exceptionResponse === 'object') {
@@ -42,7 +42,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     // Log the error
     this.logger.error(
       `❌ ${request.method} ${request.url} - ${status} - ${message}`,
-      exception instanceof Error ? exception.stack : undefined,
+      exception instanceof Error ? exception.stack : undefined
     );
 
     // Create audit log for errors (except for client errors)
@@ -77,4 +77,3 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     });
   }
 }
-

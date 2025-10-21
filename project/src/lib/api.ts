@@ -1,4 +1,5 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
 
 interface ApiResponse<T = any> {
   success: boolean;
@@ -21,11 +22,16 @@ class ApiClient {
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
     const url = `${this.baseURL}${endpoint}`;
-    
+
     // Sempre buscar o token atual do localStorage
     const currentToken = localStorage.getItem('token');
-    console.log('API Request to:', url, 'Token:', currentToken ? 'Present' : 'Missing');
-    
+    console.log(
+      'API Request to:',
+      url,
+      'Token:',
+      currentToken ? 'Present' : 'Missing'
+    );
+
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...(options.headers as Record<string, string>),
@@ -33,7 +39,10 @@ class ApiClient {
 
     if (currentToken) {
       headers.Authorization = `Bearer ${currentToken}`;
-      console.log('Authorization header set:', `Bearer ${currentToken.substring(0, 20)}...`);
+      console.log(
+        'Authorization header set:',
+        `Bearer ${currentToken.substring(0, 20)}...`
+      );
     } else {
       console.log('No token found, request will be unauthenticated');
     }
@@ -47,7 +56,9 @@ class ApiClient {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || `HTTP error! status: ${response.status}`);
+        throw new Error(
+          data.message || `HTTP error! status: ${response.status}`
+        );
       }
 
       return data;
@@ -159,7 +170,9 @@ class ApiClient {
 
   async getSpecialtiesWaitTimes(specialties: string[]) {
     const specialtiesParam = specialties.join(',');
-    return this.request(`/wait-time/specialties?specialties=${specialtiesParam}`);
+    return this.request(
+      `/wait-time/specialties?specialties=${specialtiesParam}`
+    );
   }
 
   async getConsultationWaitTime(consultationId: string) {

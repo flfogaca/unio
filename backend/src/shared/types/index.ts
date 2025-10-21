@@ -1,5 +1,10 @@
 // Common types used across the application
-import { UserRole, ConsultationStatus, ConsultationPriority, Specialty } from '@prisma/client';
+import {
+  UserRole,
+  ConsultationStatus,
+  ConsultationPriority,
+  Specialty,
+} from '@prisma/client';
 
 // Re-export Prisma enums as types for convenience
 export { UserRole, ConsultationStatus, ConsultationPriority, Specialty };
@@ -54,4 +59,3 @@ export interface VideoCallRoom {
   createdAt: Date;
   expiresAt: Date;
 }
-

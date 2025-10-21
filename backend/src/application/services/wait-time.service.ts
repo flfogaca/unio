@@ -23,7 +23,7 @@ export class WaitTimeService {
 
   constructor(
     private readonly prismaService: PrismaService,
-    private readonly redisService: RedisService,
+    private readonly redisService: RedisService
   ) {}
 
   async calculateWaitTime(specialty: Specialty): Promise<number> {
@@ -37,13 +37,14 @@ export class WaitTimeService {
       // Calculate based on current queue and historical data
       const queueLength = await this.getQueueLength(specialty);
       const onlineProfessionals = await this.getOnlineProfessionals(specialty);
-      
+
       if (onlineProfessionals === 0) {
         return this.DEFAULT_WAIT_TIMES[specialty];
       }
 
       const averageDuration = await this.getAverageDuration(specialty);
-      const calculatedWaitTime = (queueLength * averageDuration) / onlineProfessionals;
+      const calculatedWaitTime =
+        (queueLength * averageDuration) / onlineProfessionals;
 
       // Cache the result for 5 minutes
       await this.cacheWaitTime(specialty, calculatedWaitTime);
@@ -66,7 +67,7 @@ export class WaitTimeService {
 
   async getOnlineProfessionals(specialty: Specialty): Promise<number> {
     const role = this.getRoleForSpecialty(specialty);
-    
+
     return this.prismaService.user.count({
       where: {
         role: role as any,
@@ -79,21 +80,22 @@ export class WaitTimeService {
   async getAverageDuration(specialty: Specialty): Promise<number> {
     try {
       // Get recent consultations for this specialty
-      const recentConsultations = await this.prismaService.consultation.findMany({
-        where: {
-          specialty,
-          status: 'finalizado',
-          startedAt: { not: null },
-          finishedAt: { not: null },
-          createdAt: {
-            gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // Last 7 days
+      const recentConsultations =
+        await this.prismaService.consultation.findMany({
+          where: {
+            specialty,
+            status: 'finalizado',
+            startedAt: { not: null },
+            finishedAt: { not: null },
+            createdAt: {
+              gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // Last 7 days
+            },
           },
-        },
-        select: {
-          startedAt: true,
-          finishedAt: true,
-        },
-      });
+          select: {
+            startedAt: true,
+            finishedAt: true,
+          },
+        });
 
       if (recentConsultations.length === 0) {
         return this.DEFAULT_DURATIONS[specialty];
@@ -101,12 +103,15 @@ export class WaitTimeService {
 
       // Calculate average duration
       const totalDuration = recentConsultations.reduce((sum, consultation) => {
-        const duration = consultation.finishedAt.getTime() - consultation.startedAt.getTime();
+        const duration =
+          consultation.finishedAt.getTime() - consultation.startedAt.getTime();
         return sum + duration;
       }, 0);
 
       const averageDurationMs = totalDuration / recentConsultations.length;
-      const averageDurationMinutes = Math.round(averageDurationMs / (1000 * 60));
+      const averageDurationMinutes = Math.round(
+        averageDurationMs / (1000 * 60)
+      );
 
       return Math.max(averageDurationMinutes, 15); // Minimum 15 minutes
     } catch (error) {
@@ -208,7 +213,9 @@ export class WaitTimeService {
     });
   }
 
-  private async getCachedWaitTime(specialty: Specialty): Promise<number | null> {
+  private async getCachedWaitTime(
+    specialty: Specialty
+  ): Promise<number | null> {
     try {
       const cached = await this.redisService.get(`wait_time:${specialty}`);
       return cached ? parseInt(cached) : null;
@@ -218,9 +225,16 @@ export class WaitTimeService {
     }
   }
 
-  private async cacheWaitTime(specialty: Specialty, waitTime: number): Promise<void> {
+  private async cacheWaitTime(
+    specialty: Specialty,
+    waitTime: number
+  ): Promise<void> {
     try {
-      await this.redisService.set(`wait_time:${specialty}`, waitTime.toString(), 300); // 5 minutes
+      await this.redisService.set(
+        `wait_time:${specialty}`,
+        waitTime.toString(),
+        300
+      ); // 5 minutes
     } catch (error) {
       this.logger.warn('Error caching wait time:', error);
     }
@@ -256,8 +270,10 @@ export class WaitTimeService {
       throw new Error('Consultation not found');
     }
 
-    const estimatedWaitTime = await this.calculateWaitTime(consultation.specialty as Specialty);
-    
+    const estimatedWaitTime = await this.calculateWaitTime(
+      consultation.specialty as Specialty
+    );
+
     return {
       consultationId,
       specialty: consultation.specialty,
@@ -268,7 +284,9 @@ export class WaitTimeService {
 
   async getHistoricalData(specialty: Specialty, daysCount: number) {
     const endDate = new Date();
-    const startDate = new Date(endDate.getTime() - daysCount * 24 * 60 * 60 * 1000);
+    const startDate = new Date(
+      endDate.getTime() - daysCount * 24 * 60 * 60 * 1000
+    );
 
     const statistics = await this.prismaService.queueStatistics.findMany({
       where: {

@@ -7,12 +7,12 @@ import { Specialty } from '@/shared/types';
 export class AvailabilityService {
   constructor(
     private readonly prismaService: PrismaService,
-    private readonly redisService: RedisService,
+    private readonly redisService: RedisService
   ) {}
 
   async getAvailability(specialty: Specialty) {
     const role = this.getRoleForSpecialty(specialty);
-    
+
     const professionals = await this.prismaService.user.findMany({
       where: {
         role: role as any,
@@ -33,7 +33,10 @@ export class AvailabilityService {
       specialty,
       totalProfessionals,
       onlineProfessionals: onlineProfessionals.length,
-      availabilityPercentage: totalProfessionals > 0 ? (onlineProfessionals.length / totalProfessionals) * 100 : 0,
+      availabilityPercentage:
+        totalProfessionals > 0
+          ? (onlineProfessionals.length / totalProfessionals) * 100
+          : 0,
       professionals: onlineProfessionals,
     };
   }
@@ -67,15 +70,19 @@ export class AvailabilityService {
       activatedAt: new Date().toISOString(),
     };
 
-    await this.redisService.set('emergency_mode', JSON.stringify(emergencyData), 24 * 60 * 60); // 24 hours
+    await this.redisService.set(
+      'emergency_mode',
+      JSON.stringify(emergencyData),
+      24 * 60 * 60
+    ); // 24 hours
     return emergencyData;
   }
 
   private getRoleForSpecialty(specialty: Specialty): string {
     const roleMap = {
-      'psicologo': 'psicologo',
-      'dentista': 'dentista',
-      'medico_clinico': 'medico',
+      psicologo: 'psicologo',
+      dentista: 'dentista',
+      medico_clinico: 'medico',
     };
     return roleMap[specialty] || 'medico';
   }
@@ -161,7 +168,7 @@ export class AvailabilityService {
 
   async getNextAvailableTime(specialty: Specialty) {
     const availability = await this.getAvailability(specialty);
-    
+
     if (availability.onlineProfessionals > 0) {
       return {
         specialty,
@@ -173,7 +180,7 @@ export class AvailabilityService {
 
     // Calculate next available time based on historical data
     const nextAvailableTime = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes from now
-    
+
     return {
       specialty,
       nextAvailableTime,

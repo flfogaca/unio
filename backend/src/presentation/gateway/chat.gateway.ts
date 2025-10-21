@@ -37,17 +37,22 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
-  private connectedUsers = new Map<string, { userId: string; userName: string; consultationId: string }>();
+  private connectedUsers = new Map<
+    string,
+    { userId: string; userName: string; consultationId: string }
+  >();
 
   constructor(
     private readonly chatService: ChatService,
-    private readonly jwtService: JwtService,
+    private readonly jwtService: JwtService
   ) {}
 
   async handleConnection(client: Socket) {
     try {
-      const token = client.handshake.auth.token || client.handshake.headers.authorization?.replace('Bearer ', '');
-      
+      const token =
+        client.handshake.auth.token ||
+        client.handshake.headers.authorization?.replace('Bearer ', '');
+
       if (token) {
         const payload = this.jwtService.verify(token);
         console.log('✅ WebSocket conectado:', client.id, 'User:', payload.sub);
@@ -63,10 +68,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   handleDisconnect(client: Socket) {
     const userData = this.connectedUsers.get(client.id);
     if (userData) {
-      console.log('👋 Usuário desconectado:', userData.userName, 'da consulta:', userData.consultationId);
+      console.log(
+        '👋 Usuário desconectado:',
+        userData.userName,
+        'da consulta:',
+        userData.consultationId
+      );
       client.leave(userData.consultationId);
       this.connectedUsers.delete(client.id);
-      
+
       // Notificar outros usuários na sala
       this.server.to(userData.consultationId).emit('userLeft', {
         userId: userData.userId,
@@ -79,44 +89,55 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('joinRoom')
   async handleJoinRoom(
     @ConnectedSocket() client: Socket,
-    @MessageBody() payload: JoinRoomPayload,
+    @MessageBody() payload: JoinRoomPayload
   ) {
     const { consultationId, userId, userName } = payload;
-    
-    console.log('🚪 Usuário entrando na sala:', userName, 'Consulta:', consultationId);
-    
+
+    console.log(
+      '🚪 Usuário entrando na sala:',
+      userName,
+      'Consulta:',
+      consultationId
+    );
+
     // Entrar na sala
     client.join(consultationId);
-    
+
     // Armazenar dados do usuário
     this.connectedUsers.set(client.id, { userId, userName, consultationId });
-    
+
     // Carregar histórico de mensagens
     const messages = await this.chatService.getMessages(consultationId);
-    
+
     // Enviar histórico apenas para o cliente que entrou
     client.emit('messageHistory', messages);
-    
+
     // Notificar outros usuários na sala
     client.to(consultationId).emit('userJoined', {
       userId,
       userName,
     });
-    
+
     console.log('✅ Usuário entrou na sala:', userName);
-    
+
     return { success: true, message: 'Entrou na sala com sucesso' };
   }
 
   @SubscribeMessage('sendMessage')
   async handleSendMessage(
     @ConnectedSocket() client: Socket,
-    @MessageBody() payload: SendMessagePayload,
+    @MessageBody() payload: SendMessagePayload
   ) {
-    const { consultationId, senderId, senderName, senderType, message } = payload;
-    
-    console.log('💬 Nova mensagem recebida:', senderName, 'na consulta:', consultationId);
-    
+    const { consultationId, senderId, senderName, senderType, message } =
+      payload;
+
+    console.log(
+      '💬 Nova mensagem recebida:',
+      senderName,
+      'na consulta:',
+      consultationId
+    );
+
     try {
       // Salvar mensagem no banco de dados
       const savedMessage = await this.chatService.createMessage({
@@ -126,9 +147,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         senderType,
         message,
       });
-      
+
       console.log('✅ Mensagem salva no DB:', savedMessage.id);
-      
+
       // Broadcast para todos na sala (incluindo o remetente)
       this.server.to(consultationId).emit('newMessage', {
         id: savedMessage.id,
@@ -140,9 +161,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         createdAt: savedMessage.createdAt,
         timestamp: savedMessage.createdAt,
       });
-      
+
       console.log('📡 Mensagem enviada para sala:', consultationId);
-      
+
       return { success: true, messageId: savedMessage.id };
     } catch (error) {
       console.error('❌ Erro ao enviar mensagem:', error);
@@ -154,23 +175,23 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('leaveRoom')
   handleLeaveRoom(
     @ConnectedSocket() client: Socket,
-    @MessageBody() payload: { consultationId: string },
+    @MessageBody() payload: { consultationId: string }
   ) {
     const { consultationId } = payload;
     const userData = this.connectedUsers.get(client.id);
-    
+
     if (userData) {
       console.log('🚪 Usuário saindo da sala:', userData.userName);
       client.leave(consultationId);
       this.connectedUsers.delete(client.id);
-      
+
       // Notificar outros usuários
       client.to(consultationId).emit('userLeft', {
         userId: userData.userId,
         userName: userData.userName,
       });
     }
-    
+
     return { success: true };
   }
 
@@ -195,16 +216,17 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('webrtc-offer')
   handleWebRTCOffer(
     @ConnectedSocket() client: Socket,
-    @MessageBody() payload: { consultationId: string; offer: any; userId: string },
+    @MessageBody()
+    payload: { consultationId: string; offer: any; userId: string }
   ) {
     console.log('📤 WebRTC Offer recebida de:', payload.userId);
-    
+
     // Broadcast offer para outros usuários na sala
     client.to(payload.consultationId).emit('webrtc-offer', {
       offer: payload.offer,
       userId: payload.userId,
     });
-    
+
     console.log('📡 Offer enviada para sala:', payload.consultationId);
     return { success: true };
   }
@@ -212,16 +234,17 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('webrtc-answer')
   handleWebRTCAnswer(
     @ConnectedSocket() client: Socket,
-    @MessageBody() payload: { consultationId: string; answer: any; userId: string },
+    @MessageBody()
+    payload: { consultationId: string; answer: any; userId: string }
   ) {
     console.log('📤 WebRTC Answer recebida de:', payload.userId);
-    
+
     // Broadcast answer para outros usuários na sala
     client.to(payload.consultationId).emit('webrtc-answer', {
       answer: payload.answer,
       userId: payload.userId,
     });
-    
+
     console.log('📡 Answer enviada para sala:', payload.consultationId);
     return { success: true };
   }
@@ -229,17 +252,17 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('webrtc-ice-candidate')
   handleWebRTCIceCandidate(
     @ConnectedSocket() client: Socket,
-    @MessageBody() payload: { consultationId: string; candidate: any; userId: string },
+    @MessageBody()
+    payload: { consultationId: string; candidate: any; userId: string }
   ) {
     console.log('🧊 ICE Candidate recebido de:', payload.userId);
-    
+
     // Broadcast ICE candidate para outros usuários na sala
     client.to(payload.consultationId).emit('webrtc-ice-candidate', {
       candidate: payload.candidate,
       userId: payload.userId,
     });
-    
+
     return { success: true };
   }
 }
-

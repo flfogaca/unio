@@ -33,13 +33,15 @@ async function bootstrap() {
       transformOptions: {
         enableImplicitConversion: true,
       },
-    }),
+    })
   );
 
   // Swagger documentation
   const config = new DocumentBuilder()
     .setTitle('UNIO API')
-    .setDescription('Plataforma de Consultas Médicas Online - API Documentation')
+    .setDescription(
+      'Plataforma de Consultas Médicas Online - API Documentation'
+    )
     .setVersion('1.0')
     .addBearerAuth()
     .addTag('auth', 'Autenticação e autorização')
@@ -55,9 +57,10 @@ async function bootstrap() {
   const port = configService.get('PORT') || 3000;
   await app.listen(port);
 
-  console.log(`🚀 UNIO API is running on: http://localhost:${port}/${apiPrefix}`);
+  console.log(
+    `🚀 UNIO API is running on: http://localhost:${port}/${apiPrefix}`
+  );
   console.log(`📚 Swagger documentation: http://localhost:${port}/api/docs`);
 }
 
 bootstrap();
-

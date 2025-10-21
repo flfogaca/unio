@@ -1,6 +1,14 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
-import { Specialty, ConsultationStatus, ConsultationPriority } from '@/shared/types';
+import {
+  Specialty,
+  ConsultationStatus,
+  ConsultationPriority,
+} from '@/shared/types';
 
 export interface CreateConsultationDto {
   patientId: string;
@@ -27,53 +35,56 @@ import { Logger } from '@nestjs/common';
 @Injectable()
 export class ConsultationsService {
   private readonly logger = new Logger(ConsultationsService.name);
-  
-  constructor(
-    private readonly prismaService: PrismaService,
-  ) {}
+
+  constructor(private readonly prismaService: PrismaService) {}
 
   async findAll(options: FindConsultationsOptions = {}) {
     try {
       this.logger.log('FindAll called with options:', JSON.stringify(options));
-      const { 
-        page: rawPage, 
-        limit: rawLimit, 
-        status, 
-        specialty, 
-        patientId, 
-        professionalId, 
-        userId, 
-        userRole 
+      const {
+        page: rawPage,
+        limit: rawLimit,
+        status,
+        specialty,
+        patientId,
+        professionalId,
+        userId,
+        userRole,
       } = options;
-      
+
       // Garantir que page e limit são números válidos
       const page = rawPage && !isNaN(Number(rawPage)) ? Number(rawPage) : 1;
-      const limit = rawLimit && !isNaN(Number(rawLimit)) ? Number(rawLimit) : 10;
-      
+      const limit =
+        rawLimit && !isNaN(Number(rawLimit)) ? Number(rawLimit) : 10;
+
       this.logger.log(`Parsed values - page: ${page}, limit: ${limit}`);
-      
+
       const where: any = {};
       if (status) where.status = status;
       if (specialty) where.specialty = specialty;
-      
+
       // Filtrar por role do usuário
       if (userId && userRole) {
         this.logger.log(`Filtering for user ${userId} with role ${userRole}`);
         if (userRole === 'paciente') {
           // Pacientes veem apenas suas próprias consultas
           where.patientId = userId;
-        } else if (userRole === 'dentista' || userRole === 'psicologo' || userRole === 'medico') {
+        } else if (
+          userRole === 'dentista' ||
+          userRole === 'psicologo' ||
+          userRole === 'medico'
+        ) {
           // Profissionais veem apenas consultas da sua especialidade
           const specialtyMap = {
-            'dentista': 'dentista',
-            'psicologo': 'psicologo',
-            'medico': 'medico_clinico'
+            dentista: 'dentista',
+            psicologo: 'psicologo',
+            medico: 'medico_clinico',
           };
           where.specialty = specialtyMap[userRole as keyof typeof specialtyMap];
         }
         // Admin não tem filtro adicional (vê todas)
       }
-      
+
       // Permitir filtro específico se fornecido
       if (patientId) where.patientId = patientId;
       if (professionalId) where.professionalId = professionalId;
@@ -94,7 +105,9 @@ export class ConsultationsService {
         this.prismaService.consultation.count({ where }),
       ]);
 
-      this.logger.log(`Found ${consultations.length} consultations, total: ${total}`);
+      this.logger.log(
+        `Found ${consultations.length} consultations, total: ${total}`
+      );
 
       return {
         data: consultations,
@@ -132,18 +145,20 @@ export class ConsultationsService {
       where: {
         patientId: createConsultationDto.patientId,
         status: {
-          in: ['em_fila', 'em_atendimento']
-        }
-      }
+          in: ['em_fila', 'em_atendimento'],
+        },
+      },
     });
 
     if (activeConsultation) {
-      throw new BadRequestException('Você já possui uma consulta ativa. Aguarde a finalização antes de agendar outra.');
+      throw new BadRequestException(
+        'Você já possui uma consulta ativa. Aguarde a finalização antes de agendar outra.'
+      );
     }
 
     // Usar tempo padrão por enquanto (TODO: integrar WaitTimeService)
     const estimatedWaitTime = 15;
-    
+
     const consultation = await this.prismaService.consultation.create({
       data: {
         ...createConsultationDto,
@@ -157,7 +172,9 @@ export class ConsultationsService {
     });
 
     // Atualizar posições na fila após criar nova consulta
-    await this.prismaService.updateQueuePositions(createConsultationDto.specialty);
+    await this.prismaService.updateQueuePositions(
+      createConsultationDto.specialty
+    );
 
     return consultation;
   }
@@ -248,10 +265,7 @@ export class ConsultationsService {
       where: {
         specialty,
         status: { in: ['em_fila', 'em_atendimento'] },
-        OR: [
-          { professionalId: userId },
-          { professionalId: null },
-        ],
+        OR: [{ professionalId: userId }, { professionalId: null }],
       },
       include: {
         patient: true,
@@ -315,7 +329,10 @@ export class ConsultationsService {
     return this.assume(consultationId, professionalId);
   }
 
-  async finishConsultationById(consultationId: string, professionalId?: string) {
+  async finishConsultationById(
+    consultationId: string,
+    professionalId?: string
+  ) {
     return this.prismaService.consultation.update({
       where: { id: consultationId },
       data: {
@@ -330,7 +347,11 @@ export class ConsultationsService {
     });
   }
 
-  async cancelConsultation(consultationId: string, userId: string, userRole: string) {
+  async cancelConsultation(
+    consultationId: string,
+    userId: string,
+    userRole: string
+  ) {
     return this.cancel(consultationId, `Cancelled by ${userRole}`);
   }
 
@@ -375,7 +396,9 @@ export class ConsultationsService {
 
     return {
       averageDuration: 0, // Placeholder
-      totalConsultations: await this.prismaService.consultation.count({ where }),
+      totalConsultations: await this.prismaService.consultation.count({
+        where,
+      }),
       completedConsultations: await this.prismaService.consultation.count({
         where: { ...where, status: 'finalizado' },
       }),

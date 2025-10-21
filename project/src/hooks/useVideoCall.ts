@@ -90,12 +90,12 @@ export const useVideoCall = (): VideoCallHook => {
       setState(prev => ({ ...prev, isConnected: false, isInCall: false }));
     });
 
-    socket.on('error', (error) => {
+    socket.on('error', error => {
       console.error('Socket error:', error);
     });
 
     // Room events
-    socket.on('room-joined', (data) => {
+    socket.on('room-joined', data => {
       console.log('Joined room:', data);
       setState(prev => ({
         ...prev,
@@ -106,77 +106,83 @@ export const useVideoCall = (): VideoCallHook => {
       }));
     });
 
-    socket.on('participants-updated', (participants) => {
+    socket.on('participants-updated', participants => {
       setState(prev => ({ ...prev, participants }));
     });
 
-    socket.on('user-joined', (data) => {
+    socket.on('user-joined', data => {
       console.log('User joined:', data);
       setState(prev => ({
         ...prev,
-        messages: [...prev.messages, {
-          from: 'system',
-          message: 'Usuário entrou na chamada',
-          type: 'system',
-          timestamp: new Date().toISOString(),
-        }],
+        messages: [
+          ...prev.messages,
+          {
+            from: 'system',
+            message: 'Usuário entrou na chamada',
+            type: 'system',
+            timestamp: new Date().toISOString(),
+          },
+        ],
       }));
     });
 
-    socket.on('user-left', (data) => {
+    socket.on('user-left', data => {
       console.log('User left:', data);
       setState(prev => ({
         ...prev,
-        messages: [...prev.messages, {
-          from: 'system',
-          message: 'Usuário saiu da chamada',
-          type: 'system',
-          timestamp: new Date().toISOString(),
-        }],
+        messages: [
+          ...prev.messages,
+          {
+            from: 'system',
+            message: 'Usuário saiu da chamada',
+            type: 'system',
+            timestamp: new Date().toISOString(),
+          },
+        ],
       }));
     });
 
     // WebRTC events
-    socket.on('webrtc-offer', async (data) => {
+    socket.on('webrtc-offer', async data => {
       console.log('Received offer:', data);
       await handleReceiveOffer(data.offer);
     });
 
-    socket.on('webrtc-answer', async (data) => {
+    socket.on('webrtc-answer', async data => {
       console.log('Received answer:', data);
       await handleReceiveAnswer(data.answer);
     });
 
-    socket.on('webrtc-ice-candidate', async (data) => {
+    socket.on('webrtc-ice-candidate', async data => {
       console.log('Received ICE candidate:', data);
       await handleReceiveIceCandidate(data.candidate);
     });
 
     // Media events
-    socket.on('camera-toggled', (data) => {
+    socket.on('camera-toggled', data => {
       console.log('Camera toggled:', data);
       // Update participant state
       setState(prev => ({
         ...prev,
-        participants: prev.participants.map(p => 
+        participants: prev.participants.map(p =>
           p.userId === data.userId ? { ...p, videoEnabled: data.enabled } : p
         ),
       }));
     });
 
-    socket.on('microphone-toggled', (data) => {
+    socket.on('microphone-toggled', data => {
       console.log('Microphone toggled:', data);
       // Update participant state
       setState(prev => ({
         ...prev,
-        participants: prev.participants.map(p => 
+        participants: prev.participants.map(p =>
           p.userId === data.userId ? { ...p, audioEnabled: data.enabled } : p
         ),
       }));
     });
 
     // Chat events
-    socket.on('message-received', (message) => {
+    socket.on('message-received', message => {
       setState(prev => ({
         ...prev,
         messages: [...prev.messages, message],
@@ -195,7 +201,7 @@ export const useVideoCall = (): VideoCallHook => {
     peerConnectionRef.current = peerConnection;
 
     // Handle ICE candidates
-    peerConnection.onicecandidate = (event) => {
+    peerConnection.onicecandidate = event => {
       if (event.candidate && socketRef.current) {
         socketRef.current.emit('webrtc-ice-candidate', {
           roomId: state.roomId,
@@ -205,7 +211,7 @@ export const useVideoCall = (): VideoCallHook => {
     };
 
     // Handle remote stream
-    peerConnection.ontrack = (event) => {
+    peerConnection.ontrack = event => {
       console.log('Received remote stream');
       setState(prev => ({ ...prev, remoteStream: event.streams[0] }));
     };
@@ -278,7 +284,6 @@ export const useVideoCall = (): VideoCallHook => {
 
       // Join room via socket
       socketRef.current?.emit('join-room', { roomId, consultationId });
-
     } catch (error) {
       console.error('Error joining room:', error);
       throw error;
@@ -312,7 +317,6 @@ export const useVideoCall = (): VideoCallHook => {
         roomId: null,
         consultation: null,
       }));
-
     } catch (error) {
       console.error('Error leaving room:', error);
     }
@@ -325,7 +329,7 @@ export const useVideoCall = (): VideoCallHook => {
       if (videoTrack) {
         videoTrack.enabled = !videoTrack.enabled;
         setState(prev => ({ ...prev, localVideoEnabled: videoTrack.enabled }));
-        
+
         socketRef.current?.emit('toggle-camera', {
           roomId: state.roomId,
           enabled: videoTrack.enabled,
@@ -341,7 +345,7 @@ export const useVideoCall = (): VideoCallHook => {
       if (audioTrack) {
         audioTrack.enabled = !audioTrack.enabled;
         setState(prev => ({ ...prev, localAudioEnabled: audioTrack.enabled }));
-        
+
         socketRef.current?.emit('toggle-microphone', {
           roomId: state.roomId,
           enabled: audioTrack.enabled,

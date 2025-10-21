@@ -14,7 +14,7 @@ export class RedisService implements OnModuleDestroy {
       password,
     });
 
-    this.client.on('error', (err) => {
+    this.client.on('error', err => {
       console.error('Redis Client Error:', err);
     });
 
@@ -59,7 +59,11 @@ export class RedisService implements OnModuleDestroy {
   }
 
   // Session management
-  async setSession(sessionId: string, userId: string, ttl: number = 24 * 60 * 60): Promise<void> {
+  async setSession(
+    sessionId: string,
+    userId: string,
+    ttl: number = 24 * 60 * 60
+  ): Promise<void> {
     await this.set(`session:${sessionId}`, userId, ttl);
   }
 
@@ -80,12 +84,15 @@ export class RedisService implements OnModuleDestroy {
     return current;
   }
 
-  async checkRateLimit(key: string, limit: number): Promise<{ allowed: boolean; count: number; ttl: number }> {
+  async checkRateLimit(
+    key: string,
+    limit: number
+  ): Promise<{ allowed: boolean; count: number; ttl: number }> {
     const count = await this.client.get(key);
     const ttl = await this.client.ttl(key);
-    
+
     const currentCount = count ? parseInt(count) : 0;
-    
+
     return {
       allowed: currentCount < limit,
       count: currentCount,
@@ -124,7 +131,7 @@ export class RedisService implements OnModuleDestroy {
   async getCache<T>(key: string): Promise<T | null> {
     const cached = await this.get(`cache:${key}`);
     if (!cached) return null;
-    
+
     try {
       return JSON.parse(cached);
     } catch {
@@ -158,7 +165,11 @@ export class RedisService implements OnModuleDestroy {
   }
 
   // Video call rooms
-  async createVideoRoom(roomId: string, consultationId: string, ttl: number = 7200): Promise<void> {
+  async createVideoRoom(
+    roomId: string,
+    consultationId: string,
+    ttl: number = 7200
+  ): Promise<void> {
     await this.set(`video:room:${roomId}`, consultationId, ttl);
   }
 

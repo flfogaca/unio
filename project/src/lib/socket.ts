@@ -1,6 +1,8 @@
 import { io, Socket } from 'socket.io-client';
 
-const SOCKET_URL = import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:3000';
+const SOCKET_URL =
+  import.meta.env.VITE_API_URL?.replace('/api/v1', '') ||
+  'http://localhost:3000';
 
 class SocketService {
   private socket: Socket | null = null;
@@ -31,21 +33,21 @@ class SocketService {
       this.reconnectAttempts = 0;
     });
 
-    this.socket.on('disconnect', (reason) => {
+    this.socket.on('disconnect', reason => {
       console.log('🔌 WebSocket desconectado:', reason);
     });
 
-    this.socket.on('connect_error', (error) => {
+    this.socket.on('connect_error', error => {
       console.error('❌ Erro de conexão WebSocket:', error.message);
       this.reconnectAttempts++;
-      
+
       if (this.reconnectAttempts >= this.maxReconnectAttempts) {
         console.error('❌ Máximo de tentativas de reconexão atingido');
         this.disconnect();
       }
     });
 
-    this.socket.on('error', (error) => {
+    this.socket.on('error', error => {
       console.error('❌ Erro WebSocket:', error);
     });
 
@@ -67,7 +69,7 @@ class SocketService {
     }
 
     console.log('🚪 Entrando na sala:', consultationId);
-    
+
     this.socket.emit('joinRoom', {
       consultationId,
       userId,
@@ -81,7 +83,7 @@ class SocketService {
     }
 
     console.log('🚪 Saindo da sala:', consultationId);
-    
+
     this.socket.emit('leaveRoom', {
       consultationId,
     });
@@ -100,7 +102,7 @@ class SocketService {
     }
 
     console.log('💬 Enviando mensagem via WebSocket');
-    
+
     this.socket.emit('sendMessage', {
       consultationId,
       senderId,
@@ -112,37 +114,37 @@ class SocketService {
 
   onMessageHistory(callback: (messages: any[]) => void) {
     if (!this.socket) return;
-    
+
     this.socket.on('messageHistory', callback);
   }
 
   onNewMessage(callback: (message: any) => void) {
     if (!this.socket) return;
-    
+
     this.socket.on('newMessage', callback);
   }
 
   onUserJoined(callback: (user: { userId: string; userName: string }) => void) {
     if (!this.socket) return;
-    
+
     this.socket.on('userJoined', callback);
   }
 
   onUserLeft(callback: (user: { userId: string; userName: string }) => void) {
     if (!this.socket) return;
-    
+
     this.socket.on('userLeft', callback);
   }
 
   onConsultationStarted(callback: (data: any) => void) {
     if (!this.socket) return;
-    
+
     this.socket.on('consultationStarted', callback);
   }
 
   onConsultationFinished(callback: (data: any) => void) {
     if (!this.socket) return;
-    
+
     this.socket.on('consultationFinished', callback);
   }
 
@@ -178,4 +180,3 @@ class SocketService {
 // Singleton instance
 export const socketService = new SocketService();
 export default socketService;
-

@@ -15,17 +15,20 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       context.getHandler(),
       context.getClass(),
     ]);
-    
+
     console.log('=== JWT GUARD ===');
     console.log('Endpoint:', request.url);
     console.log('Is Public:', isPublic);
-    console.log('Authorization header:', request.headers.authorization ? 'Present' : 'Missing');
-    
+    console.log(
+      'Authorization header:',
+      request.headers.authorization ? 'Present' : 'Missing'
+    );
+
     if (isPublic) {
       console.log('Public endpoint, allowing access');
       return true;
     }
-    
+
     console.log('Protected endpoint, validating JWT...');
     return super.canActivate(context);
   }

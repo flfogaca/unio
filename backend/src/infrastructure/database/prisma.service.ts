@@ -2,7 +2,10 @@ import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 
 @Injectable()
-export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
+export class PrismaService
+  extends PrismaClient
+  implements OnModuleInit, OnModuleDestroy
+{
   constructor() {
     super({
       log: ['query', 'info', 'warn', 'error'],
@@ -73,8 +76,9 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   }
 
   async updateQueuePositions(specialty: string) {
-    const consultations = await this.findActiveConsultationsBySpecialty(specialty);
-    
+    const consultations =
+      await this.findActiveConsultationsBySpecialty(specialty);
+
     for (let i = 0; i < consultations.length; i++) {
       const consultation = consultations[i];
       const position = i + 1;
@@ -122,17 +126,17 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 
   async getQueueStatistics(specialty?: string, date?: Date) {
     const whereClause: any = {};
-    
+
     if (specialty) {
       whereClause.specialty = specialty;
     }
-    
+
     if (date) {
       const startOfDay = new Date(date);
       startOfDay.setHours(0, 0, 0, 0);
       const endOfDay = new Date(date);
       endOfDay.setHours(23, 59, 59, 999);
-      
+
       whereClause.date = {
         gte: startOfDay,
         lte: endOfDay,
@@ -173,9 +177,9 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     const config = await this.systemConfig.findUnique({
       where: { key },
     });
-    
+
     if (!config) return null;
-    
+
     // Parse value based on type
     switch (config.type) {
       case 'number':
@@ -189,9 +193,14 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     }
   }
 
-  async setSystemConfig(key: string, value: any, type: string = 'string', category: string = 'general') {
+  async setSystemConfig(
+    key: string,
+    value: any,
+    type: string = 'string',
+    category: string = 'general'
+  ) {
     let stringValue: string;
-    
+
     switch (type) {
       case 'number':
       case 'boolean':
@@ -216,4 +225,3 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     });
   }
 }
-

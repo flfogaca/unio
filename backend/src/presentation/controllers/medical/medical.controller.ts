@@ -1,8 +1,19 @@
-import { Controller, Post, Get, Body, Param, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  Param,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '@/infrastructure/guards/jwt-auth.guard';
 import { RolesGuard } from '@/infrastructure/guards/roles.guard';
 import { Roles } from '@/infrastructure/decorators/roles.decorator';
-import { MedicalDoctorService, MedicalConsultationRequest } from '@/application/services/medical-doctor-simple.service';
+import {
+  MedicalDoctorService,
+  MedicalConsultationRequest,
+} from '@/application/services/medical-doctor-simple.service';
 
 @Controller('medical')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -13,7 +24,7 @@ export class MedicalController {
   @Roles('paciente')
   async createUrgentConsultation(
     @Body() request: MedicalConsultationRequest,
-    @Request() req: any,
+    @Request() req: any
   ) {
     return this.medicalService.createUrgentConsultation({
       ...request,
@@ -25,7 +36,7 @@ export class MedicalController {
   @Roles('paciente')
   async createScheduledConsultation(
     @Body() request: MedicalConsultationRequest,
-    @Request() req: any,
+    @Request() req: any
   ) {
     return this.medicalService.createScheduledConsultation({
       ...request,

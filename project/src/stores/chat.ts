@@ -1,29 +1,29 @@
-import { create } from 'zustand'
-import { socketService } from '@/lib/socket'
+import { create } from 'zustand';
+import { socketService } from '@/lib/socket';
 
 export interface ChatMessage {
-  id: string
-  consultationId: string
-  senderId: string
-  senderName: string
-  senderType: 'paciente' | 'profissional' | 'sistema'
-  message: string
-  timestamp: Date
-  createdAt?: string
+  id: string;
+  consultationId: string;
+  senderId: string;
+  senderName: string;
+  senderType: 'paciente' | 'profissional' | 'sistema';
+  message: string;
+  timestamp: Date;
+  createdAt?: string;
 }
 
 interface ChatState {
-  messages: { [consultationId: string]: ChatMessage[] }
-  initialized: { [consultationId: string]: boolean }
-  connected: boolean
-  addMessage: (consultationId: string, message: ChatMessage) => void
-  sendMessage: (message: Omit<ChatMessage, 'id' | 'timestamp'>) => void
-  setMessages: (consultationId: string, messages: ChatMessage[]) => void
-  getMessages: (consultationId: string) => ChatMessage[]
-  clearMessages: (consultationId: string) => void
-  markAsInitialized: (consultationId: string) => void
-  isInitialized: (consultationId: string) => boolean
-  setConnected: (connected: boolean) => void
+  messages: { [consultationId: string]: ChatMessage[] };
+  initialized: { [consultationId: string]: boolean };
+  connected: boolean;
+  addMessage: (consultationId: string, message: ChatMessage) => void;
+  sendMessage: (message: Omit<ChatMessage, 'id' | 'timestamp'>) => void;
+  setMessages: (consultationId: string, messages: ChatMessage[]) => void;
+  getMessages: (consultationId: string) => ChatMessage[];
+  clearMessages: (consultationId: string) => void;
+  markAsInitialized: (consultationId: string) => void;
+  isInitialized: (consultationId: string) => boolean;
+  setConnected: (connected: boolean) => void;
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -32,36 +32,37 @@ export const useChatStore = create<ChatState>((set, get) => ({
   connected: false,
 
   addMessage: (consultationId: string, message: ChatMessage) => {
-    console.log('💬 Adicionando mensagem ao store:', message.id)
-    
+    console.log('💬 Adicionando mensagem ao store:', message.id);
+
     set(state => {
-      const currentMessages = state.messages[consultationId] || []
-      
+      const currentMessages = state.messages[consultationId] || [];
+
       // Verificar se a mensagem já existe
-      const exists = currentMessages.some(m => m.id === message.id)
+      const exists = currentMessages.some(m => m.id === message.id);
       if (exists) {
-        console.log('⏭️ Mensagem já existe, ignorando')
-        return state
+        console.log('⏭️ Mensagem já existe, ignorando');
+        return state;
       }
-      
+
       return {
         messages: {
           ...state.messages,
-          [consultationId]: [...currentMessages, message]
-        }
-      }
-    })
+          [consultationId]: [...currentMessages, message],
+        },
+      };
+    });
   },
 
-  sendMessage: (messageData) => {
-    const { consultationId, senderId, senderName, senderType, message } = messageData
-    
+  sendMessage: messageData => {
+    const { consultationId, senderId, senderName, senderType, message } =
+      messageData;
+
     console.log('📤 Enviando mensagem via WebSocket:', {
       consultationId,
       senderName,
-      senderType
-    })
-    
+      senderType,
+    });
+
     try {
       socketService.sendMessage(
         consultationId,
@@ -69,63 +70,68 @@ export const useChatStore = create<ChatState>((set, get) => ({
         senderName,
         senderType,
         message
-      )
-      console.log('✅ Mensagem enviada')
+      );
+      console.log('✅ Mensagem enviada');
     } catch (error) {
-      console.error('❌ Erro ao enviar mensagem:', error)
-      throw error
+      console.error('❌ Erro ao enviar mensagem:', error);
+      throw error;
     }
   },
 
   setMessages: (consultationId: string, messages: ChatMessage[]) => {
-    console.log('📋 Setando mensagens:', consultationId, messages.length, 'mensagens')
+    console.log(
+      '📋 Setando mensagens:',
+      consultationId,
+      messages.length,
+      'mensagens'
+    );
     set(state => ({
       messages: {
         ...state.messages,
-        [consultationId]: messages
-      }
-    }))
+        [consultationId]: messages,
+      },
+    }));
   },
 
   getMessages: (consultationId: string) => {
-    return get().messages[consultationId] || []
+    return get().messages[consultationId] || [];
   },
 
   clearMessages: (consultationId: string) => {
-    console.log('🧹 Limpando chat da consulta:', consultationId)
+    console.log('🧹 Limpando chat da consulta:', consultationId);
     set(state => {
-      const newMessages = { ...state.messages }
-      const newInitialized = { ...state.initialized }
-      
+      const newMessages = { ...state.messages };
+      const newInitialized = { ...state.initialized };
+
       // Remover dados da consulta
-      delete newMessages[consultationId]
-      delete newInitialized[consultationId]
-      
+      delete newMessages[consultationId];
+      delete newInitialized[consultationId];
+
       return {
         messages: newMessages,
-        initialized: newInitialized
-      }
-    })
-    console.log('✅ Chat limpo completamente')
+        initialized: newInitialized,
+      };
+    });
+    console.log('✅ Chat limpo completamente');
   },
 
   markAsInitialized: (consultationId: string) => {
     set(state => ({
       initialized: {
         ...state.initialized,
-        [consultationId]: true
-      }
-    }))
+        [consultationId]: true,
+      },
+    }));
   },
 
   isInitialized: (consultationId: string) => {
-    return get().initialized[consultationId] || false
+    return get().initialized[consultationId] || false;
   },
 
   setConnected: (connected: boolean) => {
-    set({ connected })
-  }
-}))
+    set({ connected });
+  },
+}));
 
 export const initializeConsultationChat = async (
   consultationId: string,
@@ -133,46 +139,52 @@ export const initializeConsultationChat = async (
   userName: string,
   token: string
 ) => {
-  const { isInitialized, markAsInitialized, setMessages, addMessage, setConnected } = useChatStore.getState()
-  
+  const {
+    isInitialized,
+    markAsInitialized,
+    setMessages,
+    addMessage,
+    setConnected,
+  } = useChatStore.getState();
+
   // Verificar se já foi inicializado
   if (isInitialized(consultationId)) {
-    console.log('✅ Chat já inicializado para esta consulta:', consultationId)
-    return
+    console.log('✅ Chat já inicializado para esta consulta:', consultationId);
+    return;
   }
-  
-  console.log('🚀 Inicializando chat WebSocket para consulta:', consultationId)
-  
+
+  console.log('🚀 Inicializando chat WebSocket para consulta:', consultationId);
+
   try {
     // Conectar ao WebSocket
     if (!socketService.isConnected()) {
-      socketService.connect(token)
-      await new Promise(resolve => setTimeout(resolve, 500)) // Aguardar conexão
+      socketService.connect(token);
+      await new Promise(resolve => setTimeout(resolve, 500)); // Aguardar conexão
     }
-    
-    setConnected(true)
-    
+
+    setConnected(true);
+
     // Configurar listeners
-    socketService.onMessageHistory((messages) => {
-      console.log('📥 Histórico recebido:', messages.length, 'mensagens')
+    socketService.onMessageHistory(messages => {
+      console.log('📥 Histórico recebido:', messages.length, 'mensagens');
       const formattedMessages = messages.map((msg: any) => ({
         ...msg,
-        timestamp: new Date(msg.createdAt || msg.timestamp)
-      }))
-      setMessages(consultationId, formattedMessages)
-    })
-    
-    socketService.onNewMessage((message) => {
-      console.log('📨 Nova mensagem recebida:', message.senderName)
+        timestamp: new Date(msg.createdAt || msg.timestamp),
+      }));
+      setMessages(consultationId, formattedMessages);
+    });
+
+    socketService.onNewMessage(message => {
+      console.log('📨 Nova mensagem recebida:', message.senderName);
       const formattedMessage = {
         ...message,
-        timestamp: new Date(message.createdAt || message.timestamp)
-      }
-      addMessage(consultationId, formattedMessage)
-    })
-    
-    socketService.onUserJoined((user) => {
-      console.log('👋 Usuário entrou:', user.userName)
+        timestamp: new Date(message.createdAt || message.timestamp),
+      };
+      addMessage(consultationId, formattedMessage);
+    });
+
+    socketService.onUserJoined(user => {
+      console.log('👋 Usuário entrou:', user.userName);
       // Adicionar mensagem do sistema (opcional)
       addMessage(consultationId, {
         id: `system-${Date.now()}`,
@@ -181,12 +193,12 @@ export const initializeConsultationChat = async (
         senderName: 'Sistema',
         senderType: 'sistema',
         message: `${user.userName} entrou na consulta`,
-        timestamp: new Date()
-      })
-    })
-    
-    socketService.onUserLeft((user) => {
-      console.log('👋 Usuário saiu:', user.userName)
+        timestamp: new Date(),
+      });
+    });
+
+    socketService.onUserLeft(user => {
+      console.log('👋 Usuário saiu:', user.userName);
       // Adicionar mensagem do sistema (opcional)
       addMessage(consultationId, {
         id: `system-${Date.now()}`,
@@ -195,36 +207,35 @@ export const initializeConsultationChat = async (
         senderName: 'Sistema',
         senderType: 'sistema',
         message: `${user.userName} saiu da consulta`,
-        timestamp: new Date()
-      })
-    })
-    
+        timestamp: new Date(),
+      });
+    });
+
     // Entrar na sala
-    socketService.joinRoom(consultationId, userId, userName)
-    
+    socketService.joinRoom(consultationId, userId, userName);
+
     // Marcar como inicializado
-    markAsInitialized(consultationId)
-    console.log('✅ Chat WebSocket inicializado com sucesso')
-    
+    markAsInitialized(consultationId);
+    console.log('✅ Chat WebSocket inicializado com sucesso');
   } catch (error) {
-    console.error('❌ Erro ao inicializar chat WebSocket:', error)
-    setConnected(false)
-    throw error
+    console.error('❌ Erro ao inicializar chat WebSocket:', error);
+    setConnected(false);
+    throw error;
   }
-}
+};
 
 export const disconnectChat = (consultationId: string) => {
-  console.log('🔌 Desconectando chat:', consultationId)
-  
-  socketService.leaveRoom(consultationId)
-  socketService.offMessageHistory()
-  socketService.offNewMessage()
-  socketService.offUserJoined()
-  socketService.offUserLeft()
-  
-  const { clearMessages, setConnected } = useChatStore.getState()
-  clearMessages(consultationId)
-  setConnected(false)
-  
-  console.log('✅ Chat desconectado')
-}
+  console.log('🔌 Desconectando chat:', consultationId);
+
+  socketService.leaveRoom(consultationId);
+  socketService.offMessageHistory();
+  socketService.offNewMessage();
+  socketService.offUserJoined();
+  socketService.offUserLeft();
+
+  const { clearMessages, setConnected } = useChatStore.getState();
+  clearMessages(consultationId);
+  setConnected(false);
+
+  console.log('✅ Chat desconectado');
+};

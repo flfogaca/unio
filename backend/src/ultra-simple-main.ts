@@ -5,7 +5,7 @@ async function bootstrap() {
   const app = await NestFactory.create(UltraSimpleAppModule, {
     logger: ['error', 'warn', 'log'],
   });
-  
+
   app.enableCors({
     origin: 'http://localhost:5173',
     credentials: true,

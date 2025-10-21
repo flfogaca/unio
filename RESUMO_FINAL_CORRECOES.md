@@ -9,18 +9,21 @@
 ## 🎯 **REGRAS DE NEGÓCIO CORRIGIDAS**
 
 ### **1. ✅ Login com EMAIL (não CPF)**
+
 - ❌ **Antes:** Login com CPF
 - ✅ **Agora:** Login com email
 - 📝 **Arquivos:** `login.dto.ts`, `auth.service.ts`, `local.strategy.ts`, `auth.controller.ts`
 
 ### **2. ✅ Apenas PACIENTES podem agendar consultas**
+
 - ❌ **Antes:** Qualquer um poderia criar consultas
 - ✅ **Agora:** Apenas `@Roles(UserRole.paciente)` pode criar
 - 📝 **Endpoint:** `POST /consultations` → Restrito a pacientes
 
 ### **3. ✅ Isolamento TOTAL por Especialidade**
+
 - ❌ **Antes:** Profissionais viam todas as filas
-- ✅ **Agora:** 
+- ✅ **Agora:**
   - 🦷 Dentista → Vê apenas fila de DENTISTA
   - 🧠 Psicólogo → Vê apenas fila de PSICÓLOGO
   - ⚕️ Médico → Vê apenas fila de MÉDICO CLÍNICO
@@ -28,6 +31,7 @@
   - 👤 Paciente → Vê apenas SUAS consultas
 
 ### **4. ✅ Validação de Especialidade em Ações**
+
 - ✅ **Assumir:** Valida se consulta é da especialidade do profissional
 - ✅ **Iniciar:** Valida especialidade
 - ✅ **Finalizar:** Valida especialidade
@@ -38,26 +42,31 @@
 ## 🐛 **BUGS CRÍTICOS RESOLVIDOS**
 
 ### **Bug #1: Consultas Sumiam ao Recarregar**
+
 **Causa:** `skip: NaN` e `take: null` no Prisma  
 **Solução:** Validação de `page` e `limit` para sempre serem números  
 **Status:** ✅ Resolvido
 
 ### **Bug #2: Fila do Dentista Vazia**
+
 **Causa:** Componente não buscava dados do backend  
 **Solução:** Adicionar `fetchQueue()` no `useEffect`  
 **Status:** ✅ Resolvido
 
 ### **Bug #3: Dashboard Paciente com ID Fixo**
+
 **Causa:** Filtrava por `pacienteId === 'p1'`  
 **Solução:** Usar `pacienteId === user?.id`  
 **Status:** ✅ Resolvido
 
 ### **Bug #4: Assumir Consulta Não Funcionava**
+
 **Causa:** Usava `PUT /consultations/:id` genérico  
 **Solução:** Usar `PATCH /consultations/:id/assume` específico  
 **Status:** ✅ Resolvido
 
 ### **Bug #5: Erro 500 ao Buscar Consultas**
+
 **Causa:** Paginação com `NaN`  
 **Solução:** Parser robusto de page/limit  
 **Status:** ✅ Resolvido
@@ -87,6 +96,7 @@ f9ebe52 feat: adicionar isolamento por especialidade para profissionais
 ## 🧪 **TESTES REALIZADOS E APROVADOS**
 
 ### **✅ Teste 1: Login com Email**
+
 ```bash
 POST /simple-auth/login
 { "email": "paciente1@unio.com", "password": "123456" }
@@ -95,6 +105,7 @@ POST /simple-auth/login
 ```
 
 ### **✅ Teste 2: Criar Consulta (Paciente)**
+
 ```bash
 POST /consultations
 Authorization: Bearer <token_paciente>
@@ -104,6 +115,7 @@ Authorization: Bearer <token_paciente>
 ```
 
 ### **✅ Teste 3: Buscar Consultas (Paciente)**
+
 ```bash
 GET /consultations
 Authorization: Bearer <token_paciente>
@@ -113,6 +125,7 @@ Authorization: Bearer <token_paciente>
 ```
 
 ### **✅ Teste 4: Ver Fila (Dentista)**
+
 ```bash
 GET /consultations
 Authorization: Bearer <token_dentista>
@@ -122,6 +135,7 @@ Authorization: Bearer <token_dentista>
 ```
 
 ### **✅ Teste 5: Assumir Consulta (Dentista)**
+
 ```bash
 PATCH /consultations/:id/assume
 Authorization: Bearer <token_dentista>
@@ -176,12 +190,14 @@ Authorization: Bearer <token_dentista>
 ## 📊 **ENDPOINTS IMPLEMENTADOS E TESTADOS**
 
 ### **Autenticação:**
+
 - ✅ `POST /auth/login` - Login com email
 - ✅ `POST /simple-auth/login` - Login simplificado
 - ✅ `GET /auth/profile` - Perfil do usuário
 - ✅ `POST /auth/register` - Registro de novo usuário
 
 ### **Consultas:**
+
 - ✅ `POST /consultations` - Criar (apenas pacientes)
 - ✅ `GET /consultations` - Listar (filtrado por role)
 - ✅ `GET /consultations/:id` - Buscar uma consulta
@@ -193,11 +209,13 @@ Authorization: Bearer <token_dentista>
 - ✅ `GET /consultations/my-queue` - Fila do paciente
 
 ### **Especialidades:**
+
 - ✅ `GET /specialties` - Listar especialidades
 - ✅ `GET /specialties/wait-times` - Tempos de espera
 - ✅ `GET /specialties/statistics` - Estatísticas
 
 ### **Disponibilidade:**
+
 - ✅ `GET /availability/specialty/:specialty` - Por especialidade
 - ✅ `GET /availability/specialties` - Todas
 - ✅ `PUT /availability/professional` - Atualizar status
@@ -206,15 +224,16 @@ Authorization: Bearer <token_dentista>
 
 ## 🔐 **SEGURANÇA IMPLEMENTADA**
 
-| Endpoint | Proteção | Validação |
-|----------|----------|-----------|
-| POST /consultations | @Roles(paciente) | Só pacientes criam ✅ |
-| PATCH /assume | @Roles(profissional) | Valida especialidade ✅ |
-| PATCH /start | @Roles(profissional) | Valida especialidade ✅ |
-| PATCH /finish | @Roles(profissional) | Valida especialidade ✅ |
-| GET /consultations | JWT Required | Filtra por role ✅ |
+| Endpoint            | Proteção             | Validação               |
+| ------------------- | -------------------- | ----------------------- |
+| POST /consultations | @Roles(paciente)     | Só pacientes criam ✅   |
+| PATCH /assume       | @Roles(profissional) | Valida especialidade ✅ |
+| PATCH /start        | @Roles(profissional) | Valida especialidade ✅ |
+| PATCH /finish       | @Roles(profissional) | Valida especialidade ✅ |
+| GET /consultations  | JWT Required         | Filtra por role ✅      |
 
 **Mensagens de Erro:**
+
 - "Você só pode assumir consultas da sua especialidade"
 - "Você só pode iniciar consultas da sua especialidade"
 - "Você só pode finalizar consultas da sua especialidade"
@@ -224,6 +243,7 @@ Authorization: Bearer <token_dentista>
 ## 📁 **ARQUIVOS MODIFICADOS**
 
 ### **Backend (6 arquivos):**
+
 1. `backend/src/application/dto/login.dto.ts`
 2. `backend/src/application/services/auth.service.ts`
 3. `backend/src/application/services/consultations.service.ts`
@@ -232,6 +252,7 @@ Authorization: Bearer <token_dentista>
 6. `backend/src/presentation/controllers/consultations/consultations.controller.ts`
 
 ### **Frontend (4 arquivos):**
+
 1. `project/src/stores/auth.ts`
 2. `project/src/stores/queue.ts`
 3. `project/src/lib/api.ts`
@@ -240,6 +261,7 @@ Authorization: Bearer <token_dentista>
 6. `project/src/components/dentista/ConsultasAtivas.tsx`
 
 ### **Documentação (2 arquivos):**
+
 1. `CORRECOES_APLICADAS.md`
 2. `RESUMO_FINAL_CORRECOES.md` (este arquivo)
 
@@ -247,25 +269,26 @@ Authorization: Bearer <token_dentista>
 
 ## ✅ **O QUE FUNCIONA AGORA**
 
-| Ação | Status | Observação |
-|------|--------|------------|
-| Login com email | ✅ | Ambos endpoints funcionando |
-| Paciente agenda consulta | ✅ | Apenas pacientes podem |
-| Consulta persiste ao recarregar | ✅ | Bug do NaN resolvido |
-| Dashboard mostra posição na fila | ✅ | Valores reais do backend |
-| Dashboard mostra tempo estimado | ✅ | 15min padrão |
-| Dentista vê fila de dentista | ✅ | Isolamento por especialidade |
-| Psicólogo vê fila de psicólogo | ✅ | Isolamento por especialidade |
-| Médico vê fila de médico | ✅ | Isolamento por especialidade |
-| **Assumir consulta** | ✅ | **Endpoint correto implementado** |
-| Validação de especialidade | ✅ | Profissional só assume sua área |
-| Redirecionamento para sala | ✅ | window.location.hash |
+| Ação                             | Status | Observação                        |
+| -------------------------------- | ------ | --------------------------------- |
+| Login com email                  | ✅     | Ambos endpoints funcionando       |
+| Paciente agenda consulta         | ✅     | Apenas pacientes podem            |
+| Consulta persiste ao recarregar  | ✅     | Bug do NaN resolvido              |
+| Dashboard mostra posição na fila | ✅     | Valores reais do backend          |
+| Dashboard mostra tempo estimado  | ✅     | 15min padrão                      |
+| Dentista vê fila de dentista     | ✅     | Isolamento por especialidade      |
+| Psicólogo vê fila de psicólogo   | ✅     | Isolamento por especialidade      |
+| Médico vê fila de médico         | ✅     | Isolamento por especialidade      |
+| **Assumir consulta**             | ✅     | **Endpoint correto implementado** |
+| Validação de especialidade       | ✅     | Profissional só assume sua área   |
+| Redirecionamento para sala       | ✅     | window.location.hash              |
 
 ---
 
 ## 🚀 **COMO TESTAR AGORA**
 
 ### **Cenário 1: Paciente Agenda Consulta**
+
 ```
 1. Abrir http://localhost:5173
 2. Login: paciente1@unio.com / 123456
@@ -280,6 +303,7 @@ Authorization: Bearer <token_dentista>
 ```
 
 ### **Cenário 2: Dentista Assume Consulta**
+
 ```
 1. Logout
 2. Login: dentista1@unio.com / 123456
@@ -291,6 +315,7 @@ Authorization: Bearer <token_dentista>
 ```
 
 ### **Cenário 3: Isolamento de Especialidade**
+
 ```
 1. Paciente agenda para Psicólogo
 2. Login como Dentista
@@ -305,6 +330,7 @@ Authorization: Bearer <token_dentista>
 ## 🎯 **ENDPOINTS PARA ASSUMIR CONSULTA**
 
 ### **✅ CORRETO (Implementado):**
+
 ```typescript
 // Frontend
 await apiClient.assumeConsultation(consultationId)
@@ -315,12 +341,14 @@ PATCH /consultations/:id/assume
 ```
 
 **Validações automáticas:**
+
 1. ✅ JWT válido (JwtAuthGuard)
 2. ✅ Role adequado (RolesGuard)
 3. ✅ Especialidade correta (SpecialtyFilterService)
 4. ✅ professionalId do token (@CurrentUser)
 
 **Resposta:**
+
 ```json
 {
   "success": true,
@@ -341,6 +369,7 @@ PATCH /consultations/:id/assume
 ## 🔄 **FLUXO ASSUMIR CONSULTA (Detalhado)**
 
 ### **Frontend:**
+
 ```typescript
 // 1. Dentista clica no botão
 <Button onClick={() => handleAssumeConsulta(item.id)}>
@@ -370,21 +399,22 @@ async assumeConsultation(id: string) {
 ```
 
 ### **Backend:**
+
 ```typescript
 // 5. Controller recebe
 @Patch(':id/assume')
 @Roles(UserRole.dentista, UserRole.psicologo, UserRole.medico)
 async assume(@Param('id') id: string, @CurrentUser() user: any) {
-  
+
   // 6. Busca consulta
   const consultation = await this.consultationsService.findOne(id);
-  
+
   // 7. Valida especialidade
   const userSpecialty = this.specialtyFilterService.getUserSpecialty(user.role);
   if (userSpecialty && consultation.specialty !== userSpecialty) {
     throw new Error('Você só pode assumir consultas da sua especialidade');
   }
-  
+
   // 8. Assume consulta
   return this.consultationsService.assume(id, user.id);
 }
@@ -407,6 +437,7 @@ async assume(consultationId: string, professionalId: string) {
 ## 📊 **ESTRUTURA DE DADOS**
 
 ### **Consulta no Banco:**
+
 ```sql
 Consultation {
   id: UUID
@@ -423,6 +454,7 @@ Consultation {
 ```
 
 ### **Mudanças ao Assumir:**
+
 ```diff
 Antes:
 - status: "em_fila"
@@ -440,9 +472,10 @@ Depois:
 ## ✅ **RESULTADO FINAL**
 
 ### **100% Funcional:**
+
 - ✅ Login com EMAIL
 - ✅ Apenas pacientes agendam
-- ✅ Isolamento por especialidade  
+- ✅ Isolamento por especialidade
 - ✅ Posição na fila calculada
 - ✅ Tempo estimado exibido
 - ✅ Consultas persistem
@@ -452,6 +485,7 @@ Depois:
 - ✅ Tratamento de erros
 
 ### **Pronto para:**
+
 - ✅ Desenvolvimento contínuo
 - ✅ Testes de integração
 - ✅ Testes E2E
@@ -464,10 +498,9 @@ Depois:
 **Backend:** `http://localhost:3000/api/v1` ✅  
 **Frontend:** `http://localhost:5173` ✅  
 **Database:** PostgreSQL (Supabase) ✅  
-**Cache:** Redis ✅  
+**Cache:** Redis ✅
 
 ---
 
 **Última atualização:** 07/10/2025 15:45  
 **Status:** ✅ **PRONTO PARA USO**
-

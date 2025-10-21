@@ -1,4 +1,9 @@
-import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { UserRole, Specialty } from '@/shared/types';
 
@@ -14,10 +19,9 @@ export class SpecialtyGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const specialtyRequirements = this.reflector.getAllAndOverride<SpecialtyRequirement[]>(
-      SPECIALTY_KEY,
-      [context.getHandler(), context.getClass()],
-    );
+    const specialtyRequirements = this.reflector.getAllAndOverride<
+      SpecialtyRequirement[]
+    >(SPECIALTY_KEY, [context.getHandler(), context.getClass()]);
 
     if (!specialtyRequirements || specialtyRequirements.length === 0) {
       return true;
@@ -37,18 +41,21 @@ export class SpecialtyGuard implements CanActivate {
 
     // Check if user role is allowed for any of the required specialties
     const userSpecialty = this.getUserSpecialty(user.role);
-    
+
     if (!userSpecialty) {
       throw new ForbiddenException('User role does not have a specialty');
     }
 
-    const hasAccess = specialtyRequirements.some(requirement => 
-      requirement.specialty === userSpecialty && 
-      requirement.roles.includes(user.role)
+    const hasAccess = specialtyRequirements.some(
+      requirement =>
+        requirement.specialty === userSpecialty &&
+        requirement.roles.includes(user.role)
     );
 
     if (!hasAccess) {
-      throw new ForbiddenException(`Access denied for specialty: ${userSpecialty}`);
+      throw new ForbiddenException(
+        `Access denied for specialty: ${userSpecialty}`
+      );
     }
 
     return true;

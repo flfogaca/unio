@@ -1,7 +1,7 @@
 export enum Specialty {
   DENTISTA = 'dentista',
-  PSICOLOGO = 'psicologo', 
-  MEDICO_CLINICO = 'medico_clinico'
+  PSICOLOGO = 'psicologo',
+  MEDICO_CLINICO = 'medico_clinico',
 }
 
 export enum UserRole {
@@ -9,20 +9,20 @@ export enum UserRole {
   DENTISTA = 'dentista',
   PSICOLOGO = 'psicologo',
   MEDICO = 'medico',
-  ADMIN = 'admin'
+  ADMIN = 'admin',
 }
 
 export enum ConsultationStatus {
   EM_FILA = 'em-fila',
   EM_ATENDIMENTO = 'em-atendimento',
   FINALIZADO = 'finalizado',
-  CANCELADO = 'cancelado'
+  CANCELADO = 'cancelado',
 }
 
 export enum ConsultationPriority {
   BAIXA = 'baixa',
   MEDIA = 'media',
-  ALTA = 'alta'
+  ALTA = 'alta',
 }
 
 export interface User {

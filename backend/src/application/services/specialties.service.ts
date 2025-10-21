@@ -28,29 +28,30 @@ export class SpecialtiesService {
 
   async getSpecialtyStats() {
     const specialties = await this.prismaService.specialtyConfig.findMany();
-    
+
     const stats = await Promise.all(
-      specialties.map(async (specialty) => {
-        const [totalConsultations, activeConsultations, onlineProfessionals] = await Promise.all([
-          this.prismaService.consultation.count({
-            where: { specialty: specialty.name as Specialty },
-          }),
-          this.prismaService.consultation.count({
-            where: {
-              specialty: specialty.name as Specialty,
-              status: 'em_fila',
-            },
-          }),
-          this.prismaService.user.count({
-            where: {
-              isOnline: true,
-              isActive: true,
-              specialties: {
-                has: specialty.name,
+      specialties.map(async specialty => {
+        const [totalConsultations, activeConsultations, onlineProfessionals] =
+          await Promise.all([
+            this.prismaService.consultation.count({
+              where: { specialty: specialty.name as Specialty },
+            }),
+            this.prismaService.consultation.count({
+              where: {
+                specialty: specialty.name as Specialty,
+                status: 'em_fila',
               },
-            },
-          }),
-        ]);
+            }),
+            this.prismaService.user.count({
+              where: {
+                isOnline: true,
+                isActive: true,
+                specialties: {
+                  has: specialty.name,
+                },
+              },
+            }),
+          ]);
 
         return {
           ...specialty,
@@ -76,9 +77,11 @@ export class SpecialtiesService {
 
   getSpecialtyDescription(specialty: Specialty): string {
     const descriptions = {
-      [Specialty.psicologo]: 'Atendimento psicológico online com profissionais qualificados',
+      [Specialty.psicologo]:
+        'Atendimento psicológico online com profissionais qualificados',
       [Specialty.dentista]: 'Consultas odontológicas e emergências dentárias',
-      [Specialty.medico_clinico]: 'Consultas médicas gerais e diagnósticos clínicos',
+      [Specialty.medico_clinico]:
+        'Consultas médicas gerais e diagnósticos clínicos',
     };
 
     return descriptions[specialty] || '';
@@ -96,9 +99,9 @@ export class SpecialtiesService {
 
   async getWaitTimes() {
     const specialties = await this.findAll();
-    
+
     const waitTimes = await Promise.all(
-      specialties.map(async (specialty) => {
+      specialties.map(async specialty => {
         const queueLength = await this.prismaService.consultation.count({
           where: { specialty: specialty.name as any, status: 'em_fila' },
         });
@@ -111,7 +114,10 @@ export class SpecialtiesService {
           },
         });
 
-        const estimatedWaitTime = onlineProfessionals > 0 ? Math.round(queueLength * 15 / onlineProfessionals) : queueLength * 30;
+        const estimatedWaitTime =
+          onlineProfessionals > 0
+            ? Math.round((queueLength * 15) / onlineProfessionals)
+            : queueLength * 30;
 
         return {
           specialty: specialty.name,
@@ -127,15 +133,23 @@ export class SpecialtiesService {
 
   async getStatistics() {
     const specialties = await this.findAll();
-    
+
     const statistics = await Promise.all(
-      specialties.map(async (specialty) => {
-        const [totalConsultations, activeConsultations, completedToday, onlineProfessionals] = await Promise.all([
+      specialties.map(async specialty => {
+        const [
+          totalConsultations,
+          activeConsultations,
+          completedToday,
+          onlineProfessionals,
+        ] = await Promise.all([
           this.prismaService.consultation.count({
             where: { specialty: specialty.name as any },
           }),
           this.prismaService.consultation.count({
-            where: { specialty: specialty.name as any, status: { in: ['em_fila', 'em_atendimento'] } },
+            where: {
+              specialty: specialty.name as any,
+              status: { in: ['em_fila', 'em_atendimento'] },
+            },
           }),
           this.prismaService.consultation.count({
             where: {
@@ -170,9 +184,9 @@ export class SpecialtiesService {
 
   private getRoleForSpecialty(specialty: string): string {
     const mapping = {
-      'psicologo': 'psicologo',
-      'dentista': 'dentista',
-      'medico_clinico': 'medico',
+      psicologo: 'psicologo',
+      dentista: 'dentista',
+      medico_clinico: 'medico',
     };
     return mapping[specialty] || 'psicologo';
   }

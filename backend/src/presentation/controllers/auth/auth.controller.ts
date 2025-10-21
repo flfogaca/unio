@@ -10,7 +10,12 @@ import {
   ValidationPipe,
   UnauthorizedException,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { AuthService } from '@/application/services/auth.service';
 import { LoginDto } from '@/application/dto/login.dto';
 import { RegisterDto } from '@/application/dto/register.dto';
@@ -32,14 +37,17 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
   async login(@Body(ValidationPipe) loginDto: LoginDto) {
     try {
-      const user = await this.authService.validateUser(loginDto.email, loginDto.password);
+      const user = await this.authService.validateUser(
+        loginDto.email,
+        loginDto.password
+      );
       if (!user) {
         throw new UnauthorizedException('Credenciais inválidas');
       }
 
       const payload = { email: user.email, sub: user.id, role: user.role };
       const token = this.authService['jwtService'].sign(payload);
-      
+
       return {
         success: true,
         data: {
@@ -104,14 +112,17 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async testLogin(@Body() body: { email: string; password: string }) {
     try {
-      const user = await this.authService.validateUser(body.email, body.password);
+      const user = await this.authService.validateUser(
+        body.email,
+        body.password
+      );
       if (!user) {
         return { error: 'Invalid credentials', success: false };
       }
-      
+
       const payload = { email: user.email, sub: user.id, role: user.role };
       const token = this.authService['jwtService'].sign(payload);
-      
+
       return {
         success: true,
         access_token: token,
@@ -128,4 +139,3 @@ export class AuthController {
     }
   }
 }
-

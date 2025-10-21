@@ -16,7 +16,7 @@ export const normalizePaginationParams = (params: PaginationParams) => {
   const page = Math.max(1, params.page || PAGINATION_DEFAULTS.PAGE);
   const limit = Math.min(
     Math.max(1, params.limit || PAGINATION_DEFAULTS.LIMIT),
-    PAGINATION_DEFAULTS.MAX_LIMIT,
+    PAGINATION_DEFAULTS.MAX_LIMIT
   );
   const skip = (page - 1) * limit;
 
@@ -71,7 +71,7 @@ export const unmaskCPF = (cpf: string): string => {
 // Validation utilities
 export const isValidCPF = (cpf: string): boolean => {
   const cleanCPF = unmaskCPF(cpf);
-  
+
   if (cleanCPF.length !== 11 || /^(\d)\1{10}$/.test(cleanCPF)) {
     return false;
   }
@@ -101,7 +101,7 @@ export const isValidEmail = (email: string): boolean => {
 // Object utilities
 export const omit = <T extends Record<string, any>, K extends keyof T>(
   obj: T,
-  keys: K[],
+  keys: K[]
 ): Omit<T, K> => {
   const result = { ...obj };
   keys.forEach(key => delete result[key]);
@@ -110,7 +110,7 @@ export const omit = <T extends Record<string, any>, K extends keyof T>(
 
 export const pick = <T extends Record<string, any>, K extends keyof T>(
   obj: T,
-  keys: K[],
+  keys: K[]
 ): Pick<T, K> => {
   const result = {} as Pick<T, K>;
   keys.forEach(key => {
@@ -122,7 +122,10 @@ export const pick = <T extends Record<string, any>, K extends keyof T>(
 };
 
 // Error utilities
-export const createErrorResponse = (message: string, statusCode: number = 400) => {
+export const createErrorResponse = (
+  message: string,
+  statusCode: number = 400
+) => {
   return {
     success: false,
     error: message,
@@ -139,4 +142,3 @@ export const createSuccessResponse = <T>(data: T, message?: string) => {
     timestamp: new Date().toISOString(),
   };
 };
-

@@ -40,7 +40,10 @@ export class WebRTCService {
         },
       });
 
-      console.log('✅ Mídia local obtida:', this.localStream.getTracks().map(t => t.kind));
+      console.log(
+        '✅ Mídia local obtida:',
+        this.localStream.getTracks().map(t => t.kind)
+      );
 
       // Criar peer connection
       this.createPeerConnection();
@@ -51,13 +54,15 @@ export class WebRTCService {
       return this.localStream;
     } catch (error) {
       console.error('❌ Erro ao obter mídia:', error);
-      throw new Error('Não foi possível acessar câmera/microfone. Verifique as permissões.');
+      throw new Error(
+        'Não foi possível acessar câmera/microfone. Verifique as permissões.'
+      );
     }
   }
 
   private createPeerConnection() {
     console.log('🔗 Criando PeerConnection');
-    
+
     this.peerConnection = new RTCPeerConnection(this.config);
     this.remoteStream = new MediaStream();
 
@@ -70,7 +75,7 @@ export class WebRTCService {
     }
 
     // Receber tracks remotos
-    this.peerConnection.ontrack = (event) => {
+    this.peerConnection.ontrack = event => {
       console.log('📥 Recebendo track remoto:', event.track.kind);
       event.streams[0].getTracks().forEach(track => {
         this.remoteStream?.addTrack(track);
@@ -78,7 +83,7 @@ export class WebRTCService {
     };
 
     // ICE candidates
-    this.peerConnection.onicecandidate = (event) => {
+    this.peerConnection.onicecandidate = event => {
       if (event.candidate) {
         console.log('🧊 Enviando ICE candidate');
         socketService.getSocket()?.emit('webrtc-ice-candidate', {
@@ -96,7 +101,10 @@ export class WebRTCService {
 
     // ICE connection state
     this.peerConnection.oniceconnectionstatechange = () => {
-      console.log('🧊 ICE connection state:', this.peerConnection?.iceConnectionState);
+      console.log(
+        '🧊 ICE connection state:',
+        this.peerConnection?.iceConnectionState
+      );
     };
   }
 
@@ -108,78 +116,97 @@ export class WebRTCService {
     }
 
     // Receber offer
-    socket.on('webrtc-offer', async (data: { offer: RTCSessionDescriptionInit; userId: string }) => {
-      console.log('📨 Recebendo offer de:', data.userId);
-      
-      if (!this.peerConnection) {
-        this.createPeerConnection();
+    socket.on(
+      'webrtc-offer',
+      async (data: { offer: RTCSessionDescriptionInit; userId: string }) => {
+        console.log('📨 Recebendo offer de:', data.userId);
+
+        if (!this.peerConnection) {
+          this.createPeerConnection();
+        }
+
+        // Verificar se podemos aceitar offer
+        const state = this.peerConnection?.signalingState;
+        if (state !== 'stable' && state !== 'have-local-offer') {
+          console.log('⏭️ Ignorando offer - estado atual:', state);
+          return;
+        }
+
+        try {
+          await this.peerConnection!.setRemoteDescription(
+            new RTCSessionDescription(data.offer)
+          );
+          console.log('✅ Remote description (offer) setada');
+
+          // Criar answer
+          const answer = await this.peerConnection!.createAnswer();
+          await this.peerConnection!.setLocalDescription(answer);
+          console.log('✅ Local description (answer) setada');
+
+          // Enviar answer
+          socket.emit('webrtc-answer', {
+            consultationId: this.consultationId,
+            answer,
+            userId: this.userId,
+          });
+          console.log('📤 Answer enviada');
+        } catch (error) {
+          console.error('❌ Erro ao processar offer:', error);
+        }
       }
-
-      // Verificar se podemos aceitar offer
-      const state = this.peerConnection?.signalingState;
-      if (state !== 'stable' && state !== 'have-local-offer') {
-        console.log('⏭️ Ignorando offer - estado atual:', state);
-        return;
-      }
-
-      try {
-        await this.peerConnection!.setRemoteDescription(new RTCSessionDescription(data.offer));
-        console.log('✅ Remote description (offer) setada');
-
-        // Criar answer
-        const answer = await this.peerConnection!.createAnswer();
-        await this.peerConnection!.setLocalDescription(answer);
-        console.log('✅ Local description (answer) setada');
-
-        // Enviar answer
-        socket.emit('webrtc-answer', {
-          consultationId: this.consultationId,
-          answer,
-          userId: this.userId,
-        });
-        console.log('📤 Answer enviada');
-      } catch (error) {
-        console.error('❌ Erro ao processar offer:', error);
-      }
-    });
+    );
 
     // Receber answer
-    socket.on('webrtc-answer', async (data: { answer: RTCSessionDescriptionInit; userId: string }) => {
-      console.log('📨 Recebendo answer de:', data.userId);
-      
-      // Verificar se estamos esperando um answer
-      const state = this.peerConnection?.signalingState;
-      if (state !== 'have-local-offer') {
-        console.log('⏭️ Ignorando answer - estado atual:', state, '(esperado: have-local-offer)');
-        return;
+    socket.on(
+      'webrtc-answer',
+      async (data: { answer: RTCSessionDescriptionInit; userId: string }) => {
+        console.log('📨 Recebendo answer de:', data.userId);
+
+        // Verificar se estamos esperando um answer
+        const state = this.peerConnection?.signalingState;
+        if (state !== 'have-local-offer') {
+          console.log(
+            '⏭️ Ignorando answer - estado atual:',
+            state,
+            '(esperado: have-local-offer)'
+          );
+          return;
+        }
+
+        try {
+          await this.peerConnection!.setRemoteDescription(
+            new RTCSessionDescription(data.answer)
+          );
+          console.log('✅ Remote description (answer) setada');
+        } catch (error) {
+          console.error('❌ Erro ao processar answer:', error);
+        }
       }
-      
-      try {
-        await this.peerConnection!.setRemoteDescription(new RTCSessionDescription(data.answer));
-        console.log('✅ Remote description (answer) setada');
-      } catch (error) {
-        console.error('❌ Erro ao processar answer:', error);
-      }
-    });
+    );
 
     // Receber ICE candidate
-    socket.on('webrtc-ice-candidate', async (data: { candidate: RTCIceCandidateInit; userId: string }) => {
-      console.log('🧊 Recebendo ICE candidate de:', data.userId);
-      
-      try {
-        if (this.peerConnection && data.candidate) {
-          await this.peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
-          console.log('✅ ICE candidate adicionado');
+    socket.on(
+      'webrtc-ice-candidate',
+      async (data: { candidate: RTCIceCandidateInit; userId: string }) => {
+        console.log('🧊 Recebendo ICE candidate de:', data.userId);
+
+        try {
+          if (this.peerConnection && data.candidate) {
+            await this.peerConnection.addIceCandidate(
+              new RTCIceCandidate(data.candidate)
+            );
+            console.log('✅ ICE candidate adicionado');
+          }
+        } catch (error) {
+          console.error('❌ Erro ao adicionar ICE candidate:', error);
         }
-      } catch (error) {
-        console.error('❌ Erro ao adicionar ICE candidate:', error);
       }
-    });
+    );
   }
 
   async createOffer() {
     console.log('📤 Criando offer');
-    
+
     if (!this.peerConnection) {
       throw new Error('PeerConnection não inicializado');
     }
@@ -251,10 +278,33 @@ export class WebRTCService {
     if (this.localStream) {
       this.localStream.getTracks().forEach(track => {
         track.stop();
-        console.log('⏹️ Track parado:', track.kind);
+        console.log('⏹️ Track local parado:', track.kind);
       });
       this.localStream = null;
     }
+
+    // Parar tracks remotos
+    if (this.remoteStream) {
+      this.remoteStream.getTracks().forEach(track => {
+        track.stop();
+        console.log('⏹️ Track remoto parado:', track.kind);
+      });
+      this.remoteStream = null;
+    }
+
+    // Limpar elementos de vídeo no DOM
+    const videoElements = document.querySelectorAll('video');
+    videoElements.forEach(video => {
+      if (video.srcObject) {
+        const stream = video.srcObject as MediaStream;
+        stream.getTracks().forEach(track => {
+          track.stop();
+          console.log('⏹️ Track do DOM parado:', track.kind);
+        });
+        video.srcObject = null;
+      }
+      video.pause();
+    });
 
     // Fechar peer connection
     if (this.peerConnection) {
@@ -272,13 +322,12 @@ export class WebRTCService {
       console.log('🔇 Listeners removidos');
     }
 
-    this.remoteStream = null;
     this.consultationId = null;
     this.userId = null;
+    console.log('✅ WebRTC completamente limpo');
   }
 }
 
 // Singleton instance
 export const webrtcService = new WebRTCService();
 export default webrtcService;
-

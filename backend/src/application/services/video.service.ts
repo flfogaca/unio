@@ -10,7 +10,7 @@ export class VideoService {
 
   async createRoom(consultationId: string) {
     const roomId = this.generateRoomId();
-    
+
     const room = await this.prismaService.videoCallRoom.create({
       data: {
         roomId,
@@ -19,7 +19,9 @@ export class VideoService {
       },
     });
 
-    this.logger.log(`Created video room ${roomId} for consultation ${consultationId}`);
+    this.logger.log(
+      `Created video room ${roomId} for consultation ${consultationId}`
+    );
     return room;
   }
 
@@ -51,7 +53,9 @@ export class VideoService {
     }
 
     // Check if participant already exists
-    const existingParticipant = room.participants.find(p => p.userId === userId);
+    const existingParticipant = room.participants.find(
+      p => p.userId === userId
+    );
     if (existingParticipant) {
       return this.prismaService.videoCallParticipant.update({
         where: { id: existingParticipant.id },
@@ -149,7 +153,11 @@ export class VideoService {
     }
 
     // Professionals can access consultations they're assigned to
-    if ([UserRole.dentista, UserRole.psicologo, UserRole.medico].includes(user.role)) {
+    if (
+      [UserRole.dentista, UserRole.psicologo, UserRole.medico].includes(
+        user.role
+      )
+    ) {
       return consultation.professionalId === user.id;
     }
 
@@ -181,12 +189,14 @@ export class VideoService {
 
   async leaveRoom(roomId: string, user: any) {
     // Find participant by user ID and update leftAt
-    const participant = await this.prismaService.videoCallParticipant.findFirst({
-      where: {
-        roomId,
-        userId: user.id,
-      },
-    });
+    const participant = await this.prismaService.videoCallParticipant.findFirst(
+      {
+        where: {
+          roomId,
+          userId: user.id,
+        },
+      }
+    );
 
     if (participant) {
       await this.prismaService.videoCallParticipant.update({

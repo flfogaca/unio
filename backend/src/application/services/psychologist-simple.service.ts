@@ -20,13 +20,15 @@ export class PsychologistService {
 
   constructor(
     private readonly prismaService: PrismaService,
-    private readonly redisService: RedisService,
+    private readonly redisService: RedisService
   ) {}
 
   /**
    * Create urgent psychologist consultation
    */
-  async createUrgentConsultation(request: PsychologistConsultationRequest): Promise<any> {
+  async createUrgentConsultation(
+    request: PsychologistConsultationRequest
+  ): Promise<any> {
     try {
       // Create consultation
       const consultation = await this.prismaService.consultation.create({
@@ -46,7 +48,9 @@ export class PsychologistService {
         },
       });
 
-      this.logger.log(`Created urgent psychologist consultation ${consultation.id}`);
+      this.logger.log(
+        `Created urgent psychologist consultation ${consultation.id}`
+      );
       return consultation;
     } catch (error) {
       this.logger.error('Error creating urgent consultation:', error);
@@ -57,7 +61,9 @@ export class PsychologistService {
   /**
    * Create scheduled psychologist consultation
    */
-  async createScheduledConsultation(request: PsychologistConsultationRequest): Promise<any> {
+  async createScheduledConsultation(
+    request: PsychologistConsultationRequest
+  ): Promise<any> {
     try {
       // Create consultation
       const consultation = await this.prismaService.consultation.create({
@@ -77,7 +83,9 @@ export class PsychologistService {
         },
       });
 
-      this.logger.log(`Created scheduled psychologist consultation ${consultation.id}`);
+      this.logger.log(
+        `Created scheduled psychologist consultation ${consultation.id}`
+      );
       return consultation;
     } catch (error) {
       this.logger.error('Error creating scheduled consultation:', error);
@@ -199,37 +207,39 @@ export class PsychologistService {
    * Get psychologist dashboard
    */
   async getPsychologistDashboard(psychologistId: string) {
-    const [pendingConsultations, inProgressConsultations, completedToday] = await Promise.all([
-      this.prismaService.consultation.count({
-        where: {
-          specialty: 'psicologo',
-          status: 'em_fila',
-        },
-      }),
-      this.prismaService.consultation.count({
-        where: {
-          specialty: 'psicologo',
-          status: 'em_atendimento',
-          professionalId: psychologistId,
-        },
-      }),
-      this.prismaService.consultation.count({
-        where: {
-          specialty: 'psicologo',
-          status: 'finalizado',
-          professionalId: psychologistId,
-          finishedAt: {
-            gte: new Date(new Date().setHours(0, 0, 0, 0)),
+    const [pendingConsultations, inProgressConsultations, completedToday] =
+      await Promise.all([
+        this.prismaService.consultation.count({
+          where: {
+            specialty: 'psicologo',
+            status: 'em_fila',
           },
-        },
-      }),
-    ]);
+        }),
+        this.prismaService.consultation.count({
+          where: {
+            specialty: 'psicologo',
+            status: 'em_atendimento',
+            professionalId: psychologistId,
+          },
+        }),
+        this.prismaService.consultation.count({
+          where: {
+            specialty: 'psicologo',
+            status: 'finalizado',
+            professionalId: psychologistId,
+            finishedAt: {
+              gte: new Date(new Date().setHours(0, 0, 0, 0)),
+            },
+          },
+        }),
+      ]);
 
     return {
       pendingConsultations,
       inProgressConsultations,
       completedToday,
-      totalConsultations: pendingConsultations + inProgressConsultations + completedToday,
+      totalConsultations:
+        pendingConsultations + inProgressConsultations + completedToday,
       crisisAlerts: 0, // Placeholder
       activeConsultations: inProgressConsultations,
       todaySessions: completedToday,
@@ -265,10 +275,13 @@ export class PsychologistService {
    * Generate UUID
    */
   private generateUUID(): string {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-      const r = Math.random() * 16 | 0;
-      const v = c == 'x' ? r : (r & 0x3 | 0x8);
-      return v.toString(16);
-    });
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(
+      /[xy]/g,
+      function (c) {
+        const r = (Math.random() * 16) | 0;
+        const v = c == 'x' ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+      }
+    );
   }
 }

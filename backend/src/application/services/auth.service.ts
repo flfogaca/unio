@@ -9,7 +9,7 @@ import * as bcrypt from 'bcrypt';
 export class AuthService {
   constructor(
     private readonly prismaService: PrismaService,
-    private readonly jwtService: JwtService,
+    private readonly jwtService: JwtService
   ) {}
 
   async validateUser(email: string, password: string): Promise<any> {
@@ -17,7 +17,7 @@ export class AuthService {
       where: { email },
     });
 
-    if (user && await bcrypt.compare(password, user.password)) {
+    if (user && (await bcrypt.compare(password, user.password))) {
       const { password: _, ...result } = user;
       return result;
     }
@@ -45,7 +45,7 @@ export class AuthService {
 
   async register(registerDto: RegisterDto) {
     const hashedPassword = await bcrypt.hash(registerDto.password, 10);
-    
+
     const user = await this.prismaService.user.create({
       data: {
         cpf: registerDto.cpf,
@@ -53,7 +53,9 @@ export class AuthService {
         password: hashedPassword,
         name: registerDto.name,
         phone: registerDto.phone,
-        birthDate: registerDto.birthDate ? new Date(registerDto.birthDate) : null,
+        birthDate: registerDto.birthDate
+          ? new Date(registerDto.birthDate)
+          : null,
         role: 'paciente',
       },
     });

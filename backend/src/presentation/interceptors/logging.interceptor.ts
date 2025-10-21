@@ -24,24 +24,23 @@ export class LoggingInterceptor implements NestInterceptor {
 
     return next.handle().pipe(
       tap({
-        next: (data) => {
+        next: data => {
           const duration = Date.now() - startTime;
           const { statusCode } = response;
-          
+
           this.logger.log(
-            `📤 ${method} ${url} - ${statusCode} - ${duration}ms`,
+            `📤 ${method} ${url} - ${statusCode} - ${duration}ms`
           );
         },
-        error: (error) => {
+        error: error => {
           const duration = Date.now() - startTime;
           const statusCode = error.status || 500;
-          
+
           this.logger.error(
-            `❌ ${method} ${url} - ${statusCode} - ${duration}ms - ${error.message}`,
+            `❌ ${method} ${url} - ${statusCode} - ${duration}ms - ${error.message}`
           );
         },
-      }),
+      })
     );
   }
 }
-

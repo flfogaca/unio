@@ -40,18 +40,24 @@ export class SpecialtyFilterService {
   /**
    * Filter consultations by user's specialty access
    */
-  filterConsultationsBySpecialty(consultations: any[], userRole: UserRole, userSpecialty?: Specialty) {
+  filterConsultationsBySpecialty(
+    consultations: any[],
+    userRole: UserRole,
+    userSpecialty?: Specialty
+  ) {
     if (userRole === UserRole.admin || userRole === UserRole.paciente) {
       return consultations;
     }
 
     const allowedSpecialty = userSpecialty || this.getUserSpecialty(userRole);
-    
+
     if (!allowedSpecialty) {
       return [];
     }
 
-    return consultations.filter(consultation => consultation.specialty === allowedSpecialty);
+    return consultations.filter(
+      consultation => consultation.specialty === allowedSpecialty
+    );
   }
 
   /**
@@ -102,7 +108,7 @@ export class SpecialtyFilterService {
     }
 
     const allowedSpecialty = userSpecialty || this.getUserSpecialty(userRole);
-    
+
     if (!allowedSpecialty) {
       return { specialty: 'INVALID_SPECIALTY' }; // This will return no results
     }
@@ -123,14 +129,14 @@ export class SpecialtyFilterService {
     }
 
     const allowedSpecialty = userSpecialty || this.getUserSpecialty(userRole);
-    
+
     if (!allowedSpecialty) {
       return { specialty: 'INVALID_SPECIALTY' };
     }
 
-    return { 
+    return {
       specialty: allowedSpecialty,
-      professionalId: 'USER_ID' // Professionals see their own consultations
+      professionalId: 'USER_ID', // Professionals see their own consultations
     };
   }
 }
