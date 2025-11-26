@@ -1,6 +1,20 @@
 import { create } from 'zustand';
 import apiClient from '@/lib/api';
-import { User } from '@/shared/types';
+import { User, UserRole } from '@/shared/types';
+
+function mapExternalRoleToInternal(perfilId: number | undefined): UserRole {
+  if (!perfilId) return UserRole.PACIENTE;
+
+  const roleMap: Record<number, UserRole> = {
+    1: UserRole.PACIENTE,
+    2: UserRole.DENTISTA,
+    3: UserRole.PSICOLOGO,
+    4: UserRole.MEDICO,
+    5: UserRole.ADMIN,
+  };
+
+  return roleMap[perfilId] || UserRole.PACIENTE;
+}
 
 interface AuthState {
   user: User | null;
@@ -91,32 +105,64 @@ export const useAuthStore = create<AuthState>(set => ({
 
     try {
       set({ isLoading: true });
-      const isValid = await apiClient.validateExternalToken(token);
 
-      if (isValid) {
-        const localToken = localStorage.getItem('token');
-        if (localToken) {
-          const profileResponse = await apiClient.getProfile();
-          if (profileResponse.success && profileResponse.data) {
-            set({
-              user: profileResponse.data as User,
-              isAuthenticated: true,
-              isLoading: false,
-            });
-          } else {
-            set({
-              isAuthenticated: true,
-              isLoading: false,
-            });
-          }
-        } else {
+      const parts = token.split('.');
+      if (parts.length !== 3) {
+        apiClient.clearToken();
+        set({
+          isAuthenticated: false,
+          user: null,
+          isLoading: false,
+        });
+        return;
+      }
+
+      try {
+        const payload = JSON.parse(atob(parts[1])) as { exp?: number };
+        const exp = payload.exp;
+        const now = Math.floor(Date.now() / 1000);
+
+        if (exp && exp < now) {
+          apiClient.clearToken();
           set({
-            isAuthenticated: true,
+            isAuthenticated: false,
+            user: null,
             isLoading: false,
           });
+          return;
         }
-      } else {
+      } catch {
         apiClient.clearToken();
+        set({
+          isAuthenticated: false,
+          user: null,
+          isLoading: false,
+        });
+        return;
+      }
+
+      const validationResult = await apiClient.validateExternalToken(token);
+
+      if (validationResult.valid && validationResult.userData) {
+        const externalUser = validationResult.userData;
+
+        const mappedUser: User = {
+          id: String(externalUser.id || externalUser.Id || ''),
+          name: externalUser.nome || externalUser.name || '',
+          email: externalUser.email || '',
+          role: mapExternalRoleToInternal(
+            externalUser.perfilId || externalUser.PerfilId
+          ),
+          cpf: externalUser.cpf || '',
+          phone: externalUser.telefone || externalUser.phone || '',
+        };
+
+        set({
+          user: mappedUser,
+          isAuthenticated: true,
+          isLoading: false,
+        });
+      } else {
         set({
           isAuthenticated: false,
           user: null,
@@ -124,7 +170,6 @@ export const useAuthStore = create<AuthState>(set => ({
         });
       }
     } catch {
-      apiClient.clearToken();
       set({
         isAuthenticated: false,
         user: null,

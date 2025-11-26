@@ -65,44 +65,55 @@ class ApiClient {
     return this.request('/simple-auth/profile');
   }
 
-  async validateExternalToken(token: string): Promise<boolean> {
+  async validateExternalToken(
+    token: string
+  ): Promise<{ valid: boolean; userData?: any }> {
     try {
       const parts = token.split('.');
       if (parts.length !== 3) {
-        return false;
+        return { valid: false };
       }
 
-      const payload = JSON.parse(atob(parts[1])) as { exp?: number };
+      const payload = JSON.parse(atob(parts[1])) as {
+        exp?: number;
+        Id?: number;
+        id?: number;
+        sub?: string;
+      };
+
       const exp = payload.exp;
-
-      if (!exp) {
-        return false;
+      if (exp) {
+        const now = Math.floor(Date.now() / 1000);
+        if (exp < now) {
+          return { valid: false };
+        }
       }
 
-      const now = Math.floor(Date.now() / 1000);
-      if (exp < now) {
-        return false;
+      const userId = payload.Id || payload.id || payload.sub;
+
+      if (!userId) {
+        console.error('ID do usuário não encontrado no token');
+        return { valid: false };
       }
 
-      const url = `${this.baseURL}/simple-auth/validate-external-token`;
-      const response = await fetch(url, {
-        method: 'POST',
+      const externalApiUrl = 'https://homolog.uniogroup.app/api/Usuario';
+      const response = await fetch(`${externalApiUrl}/${userId}`, {
+        method: 'GET',
         headers: {
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ token }),
       });
 
-      const data = await response.json();
-
-      if (response.ok && data.success && data.data?.token) {
-        this.setToken(data.data.token);
-        return true;
+      if (response.ok) {
+        const userData = await response.json();
+        return { valid: true, userData };
       }
 
-      return false;
-    } catch {
-      return false;
+      return { valid: false };
+    } catch (error) {
+      console.error('Erro ao validar token externo:', error);
+      return { valid: false };
     }
   }
 
