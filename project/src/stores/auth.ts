@@ -28,10 +28,16 @@ interface AuthState {
   clearError: () => void;
 }
 
+const getInitialLoadingState = () => {
+  if (typeof window === 'undefined') return false;
+  const token = localStorage.getItem('token');
+  return !!token;
+};
+
 export const useAuthStore = create<AuthState>(set => ({
   user: null,
   isAuthenticated: false,
-  isLoading: false,
+  isLoading: getInitialLoadingState(),
   error: null,
 
   login: async (credentials: { email: string; password: string }) => {
@@ -103,9 +109,9 @@ export const useAuthStore = create<AuthState>(set => ({
       return;
     }
 
-    try {
-      set({ isLoading: true });
+    set({ isLoading: true });
 
+    try {
       const parts = token.split('.');
       if (parts.length !== 3) {
         apiClient.clearToken();
