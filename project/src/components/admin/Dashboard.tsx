@@ -9,7 +9,10 @@ import {
   Calendar,
   UserCheck,
   Activity,
+  Building2,
 } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Button } from '@/components/ui/Button';
 import {
   Chart as ChartJS,
   ArcElement,
@@ -34,6 +37,40 @@ ChartJS.register(
 
 export function AdminDashboard() {
   const { items } = useQueueStore();
+  const [showCargosModal, setShowCargosModal] = useState(false);
+  const [novoCargo, setNovoCargo] = useState({ nome: '', descricao: '' });
+  const [cargos, setCargos] = useState([
+    {
+      id: 1,
+      nome: 'Paciente',
+      tipo: 'paciente',
+      descricao: 'Usuário comum do sistema',
+    },
+    {
+      id: 2,
+      nome: 'Dentista',
+      tipo: 'dentista',
+      descricao: 'Profissional de odontologia',
+    },
+    {
+      id: 3,
+      nome: 'Psicólogo',
+      tipo: 'psicologo',
+      descricao: 'Profissional de psicologia',
+    },
+    {
+      id: 4,
+      nome: 'Clínico Geral',
+      tipo: 'medico',
+      descricao: 'Profissional médico clínico',
+    },
+    {
+      id: 5,
+      nome: 'Administrador',
+      tipo: 'admin',
+      descricao: 'Administrador do sistema',
+    },
+  ]);
 
   // Calcular métricas
   const totalConsultas = items.length;
@@ -51,11 +88,14 @@ export function AdminDashboard() {
   ).length;
 
   // Tempo médio de espera (simulado)
-  const tempoMedioEspera =
-    items
-      .filter(item => item.status === 'finalizado')
-      .reduce((acc, _) => acc + Math.random() * 30 + 5, 0) /
-    (consultasFinalizadas || 1);
+  const tempoMedioEspera = useMemo(() => {
+    const baseTime = 15;
+    return (
+      items
+        .filter(item => item.status === 'finalizado')
+        .reduce(acc => acc + baseTime, 0) / (consultasFinalizadas || 1)
+    );
+  }, [items, consultasFinalizadas]);
 
   // Taxa de satisfação (simulada)
   const npsScore = 8.4;
@@ -162,15 +202,37 @@ export function AdminDashboard() {
     },
   };
 
+  const handleAdicionarCargo = () => {
+    if (novoCargo.nome.trim()) {
+      const novoId = Math.max(...cargos.map(c => c.id), 0) + 1;
+      setCargos([
+        ...cargos,
+        {
+          id: novoId,
+          nome: novoCargo.nome,
+          tipo: novoCargo.nome.toLowerCase().replace(/\s+/g, '_'),
+          descricao: novoCargo.descricao,
+        },
+      ]);
+      setNovoCargo({ nome: '', descricao: '' });
+    }
+  };
+
   return (
     <div className='space-y-6'>
-      <div>
-        <h1 className='text-3xl font-bold text-primaryDark'>
-          Dashboard Administrativo
-        </h1>
-        <p className='text-gray-600 mt-1'>
-          Visão geral das operações e métricas do sistema
-        </p>
+      <div className='flex items-center justify-between'>
+        <div>
+          <h1 className='text-3xl font-bold text-primaryDark'>
+            Dashboard Administrativo
+          </h1>
+          <p className='text-gray-600 mt-1'>
+            Visão geral das operações e métricas do sistema
+          </p>
+        </div>
+        <Button onClick={() => setShowCargosModal(true)}>
+          <Building2 className='h-4 w-4 mr-2' />
+          Gerenciar Cargos
+        </Button>
       </div>
 
       {/* Stats Grid */}
@@ -381,6 +443,83 @@ export function AdminDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {showCargosModal && (
+        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4'>
+          <div className='bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden'>
+            <div className='flex items-center justify-between p-6 border-b border-gray-200'>
+              <h2 className='text-xl font-bold text-primaryDark'>
+                Gerenciar Cargos
+              </h2>
+              <Button
+                variant='secondary'
+                onClick={() => setShowCargosModal(false)}
+              >
+                ✕
+              </Button>
+            </div>
+
+            <div className='p-6 overflow-y-auto max-h-[calc(90vh-140px)]'>
+              <div className='space-y-4'>
+                <div className='flex gap-2'>
+                  <input
+                    type='text'
+                    placeholder='Nome do cargo'
+                    value={novoCargo.nome}
+                    onChange={e =>
+                      setNovoCargo({ ...novoCargo, nome: e.target.value })
+                    }
+                    className='flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent'
+                  />
+                  <input
+                    type='text'
+                    placeholder='Descrição'
+                    value={novoCargo.descricao}
+                    onChange={e =>
+                      setNovoCargo({ ...novoCargo, descricao: e.target.value })
+                    }
+                    className='flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent'
+                  />
+                  <Button onClick={handleAdicionarCargo}>Adicionar</Button>
+                </div>
+
+                <div className='space-y-2'>
+                  {cargos.map(cargo => (
+                    <div
+                      key={cargo.id}
+                      className='flex items-center justify-between p-3 border border-gray-200 rounded-lg'
+                    >
+                      <div>
+                        <h4 className='font-medium text-primaryDark'>
+                          {cargo.nome}
+                        </h4>
+                        <p className='text-sm text-gray-600'>
+                          {cargo.descricao}
+                        </p>
+                        <span className='text-xs text-gray-500'>
+                          {cargo.tipo}
+                        </span>
+                      </div>
+                      <Button variant='secondary' size='sm'>
+                        Remover
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className='flex justify-end gap-3 p-6 border-t border-gray-200'>
+              <Button
+                variant='secondary'
+                onClick={() => setShowCargosModal(false)}
+              >
+                Fechar
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

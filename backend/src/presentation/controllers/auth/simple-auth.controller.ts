@@ -4,6 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import { Public } from '@/shared/decorators/public.decorator';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from '@/shared/decorators/current-user.decorator';
+import { UserRole, JwtPayload } from '@/shared/types';
 import * as bcrypt from 'bcrypt';
 
 @Controller('simple-auth')
@@ -34,11 +35,6 @@ export class SimpleAuthController {
       const payload = { email: user.email, sub: user.id, role: user.role };
       const token = this.jwtService.sign(payload);
 
-      console.log('=== LOGIN SUCCESS ===');
-      console.log('User:', user.email);
-      console.log('Token generated:', token ? 'Yes' : 'No');
-      console.log('Token length:', token ? token.length : 0);
-
       return {
         success: true,
         data: {
@@ -57,15 +53,100 @@ export class SimpleAuthController {
     }
   }
 
+  @Public()
+  @Post('validate-external-token')
+  async validateExternalToken(@Body() body: { token: string }) {
+    try {
+      const token = body.token;
+      if (!token) {
+        return { success: false, message: 'Token não fornecido' };
+      }
+
+      const parts = token.split('.');
+      if (parts.length !== 3) {
+        return { success: false, message: 'Token inválido' };
+      }
+
+      const payload = JSON.parse(
+        Buffer.from(parts[1], 'base64').toString('utf-8')
+      );
+
+      const externalUserId = payload.Id;
+      const perfilId = payload.PerfilId || '2';
+
+      if (!externalUserId) {
+        return {
+          success: false,
+          message: 'ID do usuário não encontrado no token',
+        };
+      }
+
+      const now = Math.floor(Date.now() / 1000);
+      if (payload.exp && payload.exp < now) {
+        return { success: false, message: 'Token expirado' };
+      }
+
+      let user = await this.prismaService.user.findFirst({
+        where: {
+          OR: [{ id: externalUserId }, { cpf: externalUserId }],
+        },
+      });
+
+      if (!user) {
+        const roleMap: Record<string, string> = {
+          '1': 'admin',
+          '2': 'paciente',
+          '3': 'dentista',
+          '4': 'medico',
+          '5': 'psicologo',
+        };
+
+        const role = roleMap[perfilId] || 'paciente';
+
+        user = await this.prismaService.user.create({
+          data: {
+            id: externalUserId,
+            email: `user_${externalUserId}@unio.com`,
+            cpf: externalUserId,
+            name: `Usuário ${externalUserId}`,
+            password: await bcrypt.hash('temp_password', 10),
+            role: role as UserRole,
+            isActive: true,
+          },
+        });
+      }
+
+      const localPayload = {
+        email: user.email,
+        sub: user.id,
+        role: user.role,
+      };
+
+      const localToken = this.jwtService.sign(localPayload);
+
+      return {
+        success: true,
+        data: {
+          token: localToken,
+          user: {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+            cpf: user.cpf,
+          },
+        },
+      };
+    } catch (error) {
+      return { success: false, message: (error as Error).message };
+    }
+  }
+
   @UseGuards(JwtAuthGuard)
   @Get('profile')
-  async getProfile(@CurrentUser() user: any) {
+  async getProfile(@CurrentUser() user: JwtPayload) {
     try {
-      console.log('=== PROFILE ENDPOINT CALLED ===');
-      console.log('User from JWT:', user); // Debug
-      console.log('JWT Secret:', process.env.JWT_SECRET ? 'Set' : 'Not set'); // Debug
-
-      const userId = user.sub || user.id;
+      const userId = user.sub;
       if (!userId) {
         return {
           success: false,
@@ -99,8 +180,7 @@ export class SimpleAuthController {
         data: userProfile,
       };
     } catch (error) {
-      console.error('Profile error:', error); // Debug
-      return { success: false, message: error.message };
+      return { success: false, message: (error as Error).message };
     }
   }
 }

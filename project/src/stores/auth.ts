@@ -20,50 +20,53 @@ export const useAuthStore = create<AuthState>(set => ({
   isLoading: false,
   error: null,
 
-  login: async credentials => {
+  login: async (credentials: { email: string; password: string }) => {
     try {
       set({ isLoading: true, error: null });
-
       const response = await apiClient.login(credentials);
-      console.log('Login response:', response);
 
-      if (response.success) {
-        const { user, token } = response.data as { user: User; token: string };
-        console.log('Token received:', token ? 'Present' : 'Missing');
-        console.log('Token value:', token);
-
+      if (response.success && response.data) {
+        const token = (response.data as { token?: string }).token;
         if (token) {
           apiClient.setToken(token);
-          console.log('Token stored in localStorage');
-        } else {
-          console.error('No token in response!');
         }
 
-        set({
-          user,
-          isAuthenticated: true,
-          isLoading: false,
-        });
+        const profileResponse = await apiClient.getProfile();
+        if (profileResponse.success && profileResponse.data) {
+          set({
+            user: profileResponse.data as User,
+            isAuthenticated: true,
+            isLoading: false,
+            error: null,
+          });
+        } else {
+          set({
+            isAuthenticated: true,
+            isLoading: false,
+            error: null,
+          });
+        }
       } else {
-        set({
-          error: response.message || 'Erro ao fazer login',
-          isLoading: false,
-        });
+        throw new Error('Login failed');
       }
-    } catch (error: any) {
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : 'Erro ao fazer login';
       set({
-        error: error.message || 'Erro ao fazer login',
+        error: errorMessage,
         isLoading: false,
+        isAuthenticated: false,
+        user: null,
       });
-      throw error;
+      throw err;
     }
   },
 
   logout: async () => {
     try {
       await apiClient.logout();
-    } catch (error) {
-      console.error('Error during logout:', error);
+    } catch {
+      void 0;
     } finally {
       apiClient.clearToken();
       set({
@@ -88,33 +91,30 @@ export const useAuthStore = create<AuthState>(set => ({
 
     try {
       set({ isLoading: true });
-      const response = await apiClient.getProfile();
+      const isValid = await apiClient.validateExternalToken(token);
 
-      if (response.success && response.data) {
-        set({
-          user: response.data as User,
-          isAuthenticated: true,
-          isLoading: false,
-        });
-      } else {
-        // Se a resposta não foi bem-sucedida, mas temos token, tentar manter a sessão
-        console.warn('Profile check failed, but keeping session with token');
-        set({
-          isAuthenticated: true,
-          user: null, // Será preenchido quando necessário
-          isLoading: false,
-        });
-      }
-    } catch (error) {
-      console.error('Error checking auth:', error);
-      // Em caso de erro de rede, manter a sessão se temos token
-      if (token) {
-        console.warn('Network error during auth check, keeping session');
-        set({
-          isAuthenticated: true,
-          user: null,
-          isLoading: false,
-        });
+      if (isValid) {
+        const localToken = localStorage.getItem('token');
+        if (localToken) {
+          const profileResponse = await apiClient.getProfile();
+          if (profileResponse.success && profileResponse.data) {
+            set({
+              user: profileResponse.data as User,
+              isAuthenticated: true,
+              isLoading: false,
+            });
+          } else {
+            set({
+              isAuthenticated: true,
+              isLoading: false,
+            });
+          }
+        } else {
+          set({
+            isAuthenticated: true,
+            isLoading: false,
+          });
+        }
       } else {
         apiClient.clearToken();
         set({
@@ -123,6 +123,13 @@ export const useAuthStore = create<AuthState>(set => ({
           isLoading: false,
         });
       }
+    } catch {
+      apiClient.clearToken();
+      set({
+        isAuthenticated: false,
+        user: null,
+        isLoading: false,
+      });
     }
   },
 
@@ -138,8 +145,8 @@ export const useAuthStore = create<AuthState>(set => ({
       if (response.success && response.data) {
         set({ user: response.data as User });
       }
-    } catch (error) {
-      console.error('Error refreshing user:', error);
+    } catch {
+      void 0;
     }
   },
 }));

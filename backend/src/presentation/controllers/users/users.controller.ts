@@ -7,7 +7,6 @@ import {
   Param,
   Delete,
   UseGuards,
-  Query,
   ValidationPipe,
 } from '@nestjs/common';
 import {
@@ -30,6 +29,26 @@ import { UserRole } from '@/shared/types';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+  @Post()
+  @Roles(UserRole.admin)
+  @ApiOperation({ summary: 'Create new user (Admin only)' })
+  @ApiResponse({ status: 201, description: 'User created successfully' })
+  @ApiResponse({ status: 400, description: 'Bad request' })
+  async create(
+    @Body()
+    createUserDto: {
+      email: string;
+      name: string;
+      password: string;
+      role: UserRole;
+      phone?: string;
+      cpf: string;
+      cro?: string;
+    }
+  ) {
+    return this.usersService.create(createUserDto);
+  }
+
   @Get()
   @Roles(UserRole.admin)
   @ApiOperation({ summary: 'Get all users (Admin only)' })
@@ -38,19 +57,14 @@ export class UsersController {
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'role', required: false, type: String })
   @ApiQuery({ name: 'search', required: false, type: String })
-  async findAll(
-    @Query('page') page?: number,
-    @Query('limit') limit?: number,
-    @Query('role') role?: UserRole,
-    @Query('search') search?: string
-  ) {
+  async findAll() {
     return this.usersService.findAll();
   }
 
   @Get('profile')
   @ApiOperation({ summary: 'Get current user profile' })
   @ApiResponse({ status: 200, description: 'Profile retrieved successfully' })
-  async getProfile(@CurrentUser() user: any) {
+  async getProfile(@CurrentUser() user: { id: string; role: UserRole }) {
     return this.usersService.findById(user.id);
   }
 
@@ -58,8 +72,10 @@ export class UsersController {
   @ApiOperation({ summary: 'Get user by ID' })
   @ApiResponse({ status: 200, description: 'User retrieved successfully' })
   @ApiResponse({ status: 404, description: 'User not found' })
-  async findOne(@Param('id') id: string, @CurrentUser() currentUser: any) {
-    // Users can only see their own profile, unless they're admin
+  async findOne(
+    @Param('id') id: string,
+    @CurrentUser() currentUser: { id: string; role: UserRole }
+  ) {
     if (currentUser.role !== UserRole.admin && currentUser.id !== id) {
       throw new Error('Forbidden');
     }
@@ -72,10 +88,9 @@ export class UsersController {
   @ApiResponse({ status: 404, description: 'User not found' })
   async update(
     @Param('id') id: string,
-    @Body(ValidationPipe) updateUserDto: any,
-    @CurrentUser() currentUser: any
+    @Body(ValidationPipe) updateUserDto: Record<string, unknown>,
+    @CurrentUser() currentUser: { id: string; role: UserRole }
   ) {
-    // Users can only update their own profile, unless they're admin
     if (currentUser.role !== UserRole.admin && currentUser.id !== id) {
       throw new Error('Forbidden');
     }
@@ -95,10 +110,7 @@ export class UsersController {
   @Roles(UserRole.admin)
   @ApiOperation({ summary: 'Activate/deactivate user (Admin only)' })
   @ApiResponse({ status: 200, description: 'User status updated successfully' })
-  async toggleActive(
-    @Param('id') id: string,
-    @Body('isActive') isActive: boolean
-  ) {
+  async toggleActive(@Param('id') id: string) {
     return this.usersService.toggleActive(id);
   }
 }

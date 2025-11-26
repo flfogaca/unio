@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Header } from './components/layout/Header';
 import { Sidebar } from './components/layout/Sidebar';
-import { LoginForm } from './components/LoginForm';
+import { AuthError } from './components/AuthError';
+import { LoginTrabalho } from './components/LoginTrabalho';
 import { SpecialtiesDashboard } from './components/SpecialtiesDashboard';
 import { SolicitarAtendimento } from './components/SolicitarAtendimento';
 import { PacienteDashboard } from './components/paciente/Dashboard';
@@ -20,12 +21,14 @@ import { Relatorios } from './components/admin/Relatorios';
 import { Perfil } from './components/Perfil';
 import { Configuracoes } from './components/Configuracoes';
 import { useAuthStore } from './stores/auth';
+import './lib/debugAuth';
 import './index.css';
 
 function App() {
   const [currentPath, setCurrentPath] = useState('/');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { isAuthenticated, isLoading, checkAuth, user } = useAuthStore();
+  const hasNavigatedRef = useRef(false);
 
   // Check authentication on app load
   useEffect(() => {
@@ -39,17 +42,21 @@ function App() {
     }
   }, [isAuthenticated, user, checkAuth]);
 
-  // Simple router based on hash and pathname
+  const navigate = useCallback((path: string) => {
+    window.history.pushState({}, '', path);
+    setCurrentPath(path);
+    setSidebarOpen(false);
+  }, []);
+
   useEffect(() => {
     const handleLocationChange = () => {
-      // Priorizar hash, depois pathname
-      const hash = window.location.hash.substring(1); // Remove o #
+      const hash = window.location.hash.substring(1);
       setCurrentPath(hash || window.location.pathname || '/');
     };
 
     window.addEventListener('popstate', handleLocationChange);
     window.addEventListener('hashchange', handleLocationChange);
-    handleLocationChange(); // Set initial path
+    handleLocationChange();
 
     return () => {
       window.removeEventListener('popstate', handleLocationChange);
@@ -57,35 +64,40 @@ function App() {
     };
   }, []);
 
-  // Redirecionar usuário para sua rota padrão se estiver na raiz
   useEffect(() => {
-    if (isAuthenticated && user && currentPath === '/') {
+    if (
+      isAuthenticated &&
+      user &&
+      currentPath === '/' &&
+      !hasNavigatedRef.current
+    ) {
       const defaultRoute = {
         paciente: '/paciente',
         dentista: '/dentista',
-        psicologo: '/dentista', // Psicólogos usam as mesmas rotas dos dentistas
-        medico: '/dentista', // Médicos usam as mesmas rotas dos dentistas
+        psicologo: '/dentista',
+        medico: '/dentista',
         admin: '/admin',
       };
       const route =
         defaultRoute[user.role as keyof typeof defaultRoute] || '/paciente';
-      // Usar navigate em vez de window.location.hash para evitar URLs estranhas
-      navigate(route);
+      hasNavigatedRef.current = true;
+      window.history.pushState({}, '', route);
+      setTimeout(() => {
+        setCurrentPath(route);
+        setSidebarOpen(false);
+      }, 0);
     }
-  }, [isAuthenticated, user, currentPath]);
-
-  const navigate = (path: string) => {
-    window.history.pushState({}, '', path);
-    setCurrentPath(path);
-    setSidebarOpen(false);
-  };
+  }, [isAuthenticated, user, currentPath, navigate]);
 
   const handleSelectSpecialty = (specialtyId: string) => {
     // Navigate to specialty-specific page
     setCurrentPath(`/solicitar-atendimento/${specialtyId}`);
   };
 
-  // Show loading screen while checking authentication
+  if (currentPath === '/login/trabalho') {
+    return <LoginTrabalho />;
+  }
+
   if (isLoading) {
     return (
       <div className='min-h-screen flex items-center justify-center bg-grayBg'>
@@ -97,17 +109,12 @@ function App() {
     );
   }
 
-  // Show login form if not authenticated
   if (!isAuthenticated) {
-    return <LoginForm />;
+    return <AuthError />;
   }
 
   const renderContent = () => {
     const userRole = getUserRole();
-
-    console.log('🔍 Renderizando conteúdo:', { currentPath, userRole });
-
-    // Verificar se o usuário tem acesso à rota atual
     if (!hasAccessToRoute(currentPath, userRole)) {
       // Redirecionar automaticamente para o dashboard do usuário
       const defaultRoute = {
@@ -127,25 +134,15 @@ function App() {
       );
     }
 
-    // Extract consultation ID from path if present
     const consultaMatch = currentPath.match(/^\/dentista\/consulta\/(.+)$/);
     if (consultaMatch) {
-      console.log(
-        '🦷 Renderizando ConsultaRoom para dentista:',
-        consultaMatch[1]
-      );
       return <ConsultaRoom consultaId={consultaMatch[1]} />;
     }
 
-    // Extract patient consultation ID from path if present
     const pacienteConsultaMatch = currentPath.match(
       /^\/paciente\/consulta\/(.+)$/
     );
     if (pacienteConsultaMatch) {
-      console.log(
-        '👤 Renderizando PacienteConsultaRoom para paciente:',
-        pacienteConsultaMatch[1]
-      );
       return <PacienteConsultaRoom consultaId={pacienteConsultaMatch[1]} />;
     }
 
@@ -201,9 +198,7 @@ function App() {
       case '/configuracoes':
         return <Configuracoes />;
 
-      default:
-        // Redirecionar para a rota padrão do usuário
-        const userRole = getUserRole();
+      default: {
         const defaultRoute = {
           paciente: '/paciente',
           dentista: '/dentista',
@@ -212,9 +207,11 @@ function App() {
           admin: '/admin',
         };
         const route =
-          defaultRoute[userRole as keyof typeof defaultRoute] || '/paciente';
+          defaultRoute[getUserRole() as keyof typeof defaultRoute] ||
+          '/paciente';
         navigate(route);
         return <div>Redirecionando...</div>;
+      }
     }
   };
 

@@ -1,7 +1,7 @@
 const API_BASE_URL =
   import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
 
-interface ApiResponse<T = any> {
+interface ApiResponse<T = unknown> {
   success: boolean;
   data: T;
   message?: string;
@@ -22,16 +22,7 @@ class ApiClient {
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
     const url = `${this.baseURL}${endpoint}`;
-
-    // Sempre buscar o token atual do localStorage
     const currentToken = localStorage.getItem('token');
-    console.log(
-      'API Request to:',
-      url,
-      'Token:',
-      currentToken ? 'Present' : 'Missing'
-    );
-
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...(options.headers as Record<string, string>),
@@ -39,33 +30,20 @@ class ApiClient {
 
     if (currentToken) {
       headers.Authorization = `Bearer ${currentToken}`;
-      console.log(
-        'Authorization header set:',
-        `Bearer ${currentToken.substring(0, 20)}...`
-      );
-    } else {
-      console.log('No token found, request will be unauthenticated');
     }
 
-    try {
-      const response = await fetch(url, {
-        ...options,
-        headers,
-      });
+    const response = await fetch(url, {
+      ...options,
+      headers,
+    });
 
-      const data = await response.json();
+    const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(
-          data.message || `HTTP error! status: ${response.status}`
-        );
-      }
-
-      return data;
-    } catch (error) {
-      console.error('API request failed:', error);
-      throw error;
+    if (!response.ok) {
+      throw new Error(data.message || `HTTP error! status: ${response.status}`);
     }
+
+    return data;
   }
 
   // Auth endpoints
@@ -76,7 +54,7 @@ class ApiClient {
     });
   }
 
-  async register(userData: any) {
+  async register(userData: Record<string, unknown>) {
     return this.request('/auth/register', {
       method: 'POST',
       body: JSON.stringify(userData),
@@ -85,6 +63,47 @@ class ApiClient {
 
   async getProfile() {
     return this.request('/simple-auth/profile');
+  }
+
+  async validateExternalToken(token: string): Promise<boolean> {
+    try {
+      const parts = token.split('.');
+      if (parts.length !== 3) {
+        return false;
+      }
+
+      const payload = JSON.parse(atob(parts[1])) as { exp?: number };
+      const exp = payload.exp;
+
+      if (!exp) {
+        return false;
+      }
+
+      const now = Math.floor(Date.now() / 1000);
+      if (exp < now) {
+        return false;
+      }
+
+      const url = `${this.baseURL}/simple-auth/validate-external-token`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success && data.data?.token) {
+        this.setToken(data.data.token);
+        return true;
+      }
+
+      return false;
+    } catch {
+      return false;
+    }
   }
 
   async logout() {
@@ -98,7 +117,7 @@ class ApiClient {
     return this.request('/consultations');
   }
 
-  async createConsultation(consultationData: any) {
+  async createConsultation(consultationData: Record<string, unknown>) {
     return this.request('/consultations', {
       method: 'POST',
       body: JSON.stringify(consultationData),
@@ -109,7 +128,7 @@ class ApiClient {
     return this.request(`/consultations/${id}`);
   }
 
-  async updateConsultation(id: string, data: any) {
+  async updateConsultation(id: string, data: Record<string, unknown>) {
     return this.request(`/consultations/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
@@ -156,7 +175,7 @@ class ApiClient {
     return this.request('/availability/professional');
   }
 
-  async updateProfessionalAvailability(data: any) {
+  async updateProfessionalAvailability(data: Record<string, unknown>) {
     return this.request('/availability/professional', {
       method: 'PUT',
       body: JSON.stringify(data),
@@ -192,7 +211,7 @@ class ApiClient {
     return this.request(`/users/${id}`);
   }
 
-  async updateUser(id: string, data: any) {
+  async updateUser(id: string, data: Record<string, unknown>) {
     return this.request(`/users/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
@@ -204,7 +223,7 @@ class ApiClient {
     return this.request('/medical-records');
   }
 
-  async createMedicalRecord(data: any) {
+  async createMedicalRecord(data: Record<string, unknown>) {
     return this.request('/medical-records', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -255,7 +274,6 @@ class ApiClient {
     senderType: 'paciente' | 'profissional' | 'sistema';
     message: string;
   }) {
-    console.log('💬 API: Enviando mensagem ao backend:', data);
     return this.request('/chat/messages', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -264,7 +282,6 @@ class ApiClient {
 
   async getChatMessages(consultationId: string, limit?: number) {
     const params = limit ? `?limit=${limit}` : '';
-    console.log('📥 API: Buscando mensagens do backend para:', consultationId);
     return this.request(`/chat/messages/${consultationId}${params}`, {
       method: 'GET',
     });
@@ -272,7 +289,6 @@ class ApiClient {
 
   async getChatMessagesSince(consultationId: string, since: Date) {
     const sinceISO = since.toISOString();
-    console.log('🔄 API: Buscando mensagens novas desde:', sinceISO);
     return this.request(`/chat/messages/${consultationId}?since=${sinceISO}`, {
       method: 'GET',
     });

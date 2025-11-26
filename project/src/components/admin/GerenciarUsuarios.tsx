@@ -35,10 +35,30 @@ export function GerenciarUsuarios({ onBack }: GerenciarUsuariosProps) {
   const [modalType, setModalType] = useState<'create' | 'edit' | 'view'>(
     'create'
   );
-  const [selectedUser, setSelectedUser] = useState<any>(null);
+  interface Usuario {
+    id: string;
+    nome: string;
+    email: string;
+    telefone: string;
+    tipo: 'paciente' | 'dentista' | 'psicologo' | 'medico' | 'admin';
+    status: string;
+    especialidades?: string[];
+    cro?: string;
+    cpf?: string;
+    endereco?: string;
+    avatar?: string;
+    dataCadastro?: Date;
+    consultasRealizadas?: number;
+    avaliacaoMedia?: number;
+    ultimoAcesso?: Date;
+    ultimaConsulta?: Date;
+    plano?: string;
+    permissoes?: string[];
+  }
 
-  // Mock de dados de usuários
-  const usuarios = [
+  const [selectedUser, setSelectedUser] = useState<Usuario | null>(null);
+
+  const usuarios: Usuario[] = [
     {
       id: '1',
       nome: 'Dr. João Silva',
@@ -120,13 +140,24 @@ export function GerenciarUsuarios({ onBack }: GerenciarUsuariosProps) {
   const [formData, setFormData] = useState({
     nome: '',
     email: '',
+    cpf: '',
     telefone: '',
-    tipo: 'paciente',
+    tipo: 'paciente' as
+      | 'paciente'
+      | 'dentista'
+      | 'psicologo'
+      | 'medico'
+      | 'admin',
     especialidades: [] as string[],
     cro: '',
     endereco: '',
     status: 'ativo',
+    password: '',
   });
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   const tabs = [
     { id: 'todos', label: 'Todos', count: usuarios.length },
@@ -205,33 +236,131 @@ export function GerenciarUsuarios({ onBack }: GerenciarUsuariosProps) {
     setFormData({
       nome: '',
       email: '',
+      cpf: '',
       telefone: '',
       tipo: 'paciente',
       especialidades: [],
       cro: '',
       endereco: '',
       status: 'ativo',
+      password: '',
     });
+    setError(null);
+    setSuccess(null);
     setShowModal(true);
   };
 
-  const handleEditUser = (user: any) => {
+  const handleSubmit = async () => {
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      if (modalType === 'create') {
+        const userData: {
+          name: string;
+          email: string;
+          phone: string;
+          role: string;
+          password: string;
+          cpf?: string;
+          cro?: string;
+        } = {
+          name: formData.nome,
+          email: formData.email,
+          phone: formData.telefone,
+          role: formData.tipo,
+          password: formData.password || 'Unio@123',
+        };
+
+        if (formData.tipo === 'paciente') {
+          userData.cpf = formData.cpf.replace(/\D/g, '');
+        } else {
+          userData.cro = formData.cro;
+        }
+
+        const response = await fetch('/api/v1/users', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(userData),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Erro ao criar usuário');
+        }
+
+        setSuccess('Usuário criado com sucesso!');
+        setTimeout(() => {
+          setShowModal(false);
+          window.location.reload();
+        }, 1500);
+      } else {
+        if (!selectedUser) {
+          setError('Usuário não selecionado');
+          setLoading(false);
+          return;
+        }
+        const response = await fetch(`/api/v1/users/${selectedUser.id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name: formData.nome,
+            email: formData.email,
+            phone: formData.telefone,
+            role: formData.tipo,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Erro ao atualizar usuário');
+        }
+
+        setSuccess('Usuário atualizado com sucesso!');
+        setTimeout(() => {
+          setShowModal(false);
+          window.location.reload();
+        }, 1500);
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Erro ao processar solicitação'
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditUser = (user: Usuario) => {
     setModalType('edit');
     setSelectedUser(user);
     setFormData({
       nome: user.nome,
       email: user.email,
+      cpf: user.cpf || '',
       telefone: user.telefone,
-      tipo: user.tipo,
+      tipo: user.tipo as
+        | 'paciente'
+        | 'dentista'
+        | 'psicologo'
+        | 'medico'
+        | 'admin',
       especialidades: user.especialidades || [],
       cro: user.cro || '',
-      endereco: user.endereco,
+      endereco: user.endereco || '',
       status: user.status,
+      password: '',
     });
+    setError(null);
+    setSuccess(null);
     setShowModal(true);
   };
 
-  const handleViewUser = (user: any) => {
+  const handleViewUser = (user: Usuario) => {
     setModalType('view');
     setSelectedUser(user);
     setShowModal(true);
@@ -337,15 +466,17 @@ export function GerenciarUsuarios({ onBack }: GerenciarUsuariosProps) {
                         <MapPin className='h-4 w-4 text-gray-400' />
                         <span>{selectedUser.endereco}</span>
                       </div>
-                      <div className='flex items-center gap-2'>
-                        <Calendar className='h-4 w-4 text-gray-400' />
-                        <span>
-                          Cadastrado em{' '}
-                          {selectedUser.dataCadastro.toLocaleDateString(
-                            'pt-BR'
-                          )}
-                        </span>
-                      </div>
+                      {selectedUser.dataCadastro && (
+                        <div className='flex items-center gap-2'>
+                          <Calendar className='h-4 w-4 text-gray-400' />
+                          <span>
+                            Cadastrado em{' '}
+                            {selectedUser.dataCadastro.toLocaleDateString(
+                              'pt-BR'
+                            )}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -362,88 +493,107 @@ export function GerenciarUsuarios({ onBack }: GerenciarUsuariosProps) {
                               {selectedUser.cro}
                             </span>
                           </div>
-                          <div className='flex justify-between'>
-                            <span className='text-gray-600'>Consultas:</span>
-                            <span className='font-medium'>
-                              {selectedUser.consultasRealizadas}
-                            </span>
-                          </div>
-                          <div className='flex justify-between'>
-                            <span className='text-gray-600'>Avaliação:</span>
-                            <div className='flex items-center gap-1'>
-                              <Star className='h-3 w-3 text-yellow-400 fill-current' />
+                          {selectedUser.consultasRealizadas !== undefined && (
+                            <div className='flex justify-between'>
+                              <span className='text-gray-600'>Consultas:</span>
                               <span className='font-medium'>
-                                {selectedUser.avaliacaoMedia}
+                                {selectedUser.consultasRealizadas}
                               </span>
                             </div>
-                          </div>
-                          <div className='flex justify-between'>
-                            <span className='text-gray-600'>
-                              Último acesso:
-                            </span>
-                            <span className='font-medium'>
-                              {selectedUser.ultimoAcesso?.toLocaleDateString(
-                                'pt-BR'
-                              )}
-                            </span>
-                          </div>
+                          )}
+                          {selectedUser.avaliacaoMedia !== undefined && (
+                            <div className='flex justify-between'>
+                              <span className='text-gray-600'>Avaliação:</span>
+                              <div className='flex items-center gap-1'>
+                                <Star className='h-3 w-3 text-yellow-400 fill-current' />
+                                <span className='font-medium'>
+                                  {selectedUser.avaliacaoMedia}
+                                </span>
+                              </div>
+                            </div>
+                          )}
+                          {selectedUser.ultimoAcesso && (
+                            <div className='flex justify-between'>
+                              <span className='text-gray-600'>
+                                Último acesso:
+                              </span>
+                              <span className='font-medium'>
+                                {selectedUser.ultimoAcesso.toLocaleDateString(
+                                  'pt-BR'
+                                )}
+                              </span>
+                            </div>
+                          )}
                         </>
                       )}
 
                       {selectedUser.tipo === 'paciente' && (
                         <>
-                          <div className='flex justify-between'>
-                            <span className='text-gray-600'>Consultas:</span>
-                            <span className='font-medium'>
-                              {selectedUser.consultasRealizadas}
-                            </span>
-                          </div>
-                          <div className='flex justify-between'>
-                            <span className='text-gray-600'>
-                              Última consulta:
-                            </span>
-                            <span className='font-medium'>
-                              {selectedUser.ultimaConsulta?.toLocaleDateString(
-                                'pt-BR'
-                              )}
-                            </span>
-                          </div>
-                          <div className='flex justify-between'>
-                            <span className='text-gray-600'>Plano:</span>
-                            <span className='font-medium'>
-                              {selectedUser.plano}
-                            </span>
-                          </div>
+                          {selectedUser.consultasRealizadas !== undefined && (
+                            <div className='flex justify-between'>
+                              <span className='text-gray-600'>Consultas:</span>
+                              <span className='font-medium'>
+                                {selectedUser.consultasRealizadas}
+                              </span>
+                            </div>
+                          )}
+                          {selectedUser.ultimaConsulta && (
+                            <div className='flex justify-between'>
+                              <span className='text-gray-600'>
+                                Última consulta:
+                              </span>
+                              <span className='font-medium'>
+                                {selectedUser.ultimaConsulta.toLocaleDateString(
+                                  'pt-BR'
+                                )}
+                              </span>
+                            </div>
+                          )}
+                          {selectedUser.plano && (
+                            <div className='flex justify-between'>
+                              <span className='text-gray-600'>Plano:</span>
+                              <span className='font-medium'>
+                                {selectedUser.plano}
+                              </span>
+                            </div>
+                          )}
                         </>
                       )}
 
                       {selectedUser.tipo === 'admin' && (
                         <>
-                          <div className='flex justify-between'>
-                            <span className='text-gray-600'>
-                              Último acesso:
-                            </span>
-                            <span className='font-medium'>
-                              {selectedUser.ultimoAcesso?.toLocaleDateString(
-                                'pt-BR'
-                              )}
-                            </span>
-                          </div>
-                          <div>
-                            <span className='text-gray-600'>Permissões:</span>
-                            <div className='mt-1 flex flex-wrap gap-1'>
-                              {selectedUser.permissoes?.map(
-                                (perm: string, index: number) => (
-                                  <span
-                                    key={index}
-                                    className='bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded'
-                                  >
-                                    {perm}
-                                  </span>
-                                )
-                              )}
+                          {selectedUser.ultimoAcesso && (
+                            <div className='flex justify-between'>
+                              <span className='text-gray-600'>
+                                Último acesso:
+                              </span>
+                              <span className='font-medium'>
+                                {selectedUser.ultimoAcesso.toLocaleDateString(
+                                  'pt-BR'
+                                )}
+                              </span>
                             </div>
-                          </div>
+                          )}
+                          {selectedUser.permissoes &&
+                            selectedUser.permissoes.length > 0 && (
+                              <div>
+                                <span className='text-gray-600'>
+                                  Permissões:
+                                </span>
+                                <div className='mt-1 flex flex-wrap gap-1'>
+                                  {selectedUser.permissoes.map(
+                                    (perm: string, index: number) => (
+                                      <span
+                                        key={index}
+                                        className='bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded'
+                                      >
+                                        {perm}
+                                      </span>
+                                    )
+                                  )}
+                                </div>
+                              </div>
+                            )}
                         </>
                       )}
                     </div>
@@ -473,10 +623,21 @@ export function GerenciarUsuarios({ onBack }: GerenciarUsuariosProps) {
               </div>
             ) : (
               <form className='space-y-4'>
+                {error && (
+                  <div className='bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg'>
+                    {error}
+                  </div>
+                )}
+                {success && (
+                  <div className='bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg'>
+                    {success}
+                  </div>
+                )}
+
                 <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                   <div>
                     <label className='block text-sm font-medium text-gray-700 mb-1'>
-                      Nome Completo
+                      Nome Completo *
                     </label>
                     <input
                       type='text'
@@ -486,11 +647,73 @@ export function GerenciarUsuarios({ onBack }: GerenciarUsuariosProps) {
                       }
                       className='w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent'
                       placeholder='Digite o nome completo'
+                      required
                     />
                   </div>
+                  {formData.tipo === 'paciente' ? (
+                    <div>
+                      <label className='block text-sm font-medium text-gray-700 mb-1'>
+                        CPF *
+                      </label>
+                      <input
+                        type='text'
+                        value={formData.cpf}
+                        onChange={e => {
+                          let value = e.target.value.replace(/\D/g, '');
+                          if (value.length > 11) value = value.slice(0, 11);
+                          if (value.length > 0) {
+                            value = value.replace(/^(\d{3})(\d)/, '$1.$2');
+                            value = value.replace(
+                              /^(\d{3})\.(\d{3})(\d)/,
+                              '$1.$2.$3'
+                            );
+                            value = value.replace(/\.(\d{3})(\d)/, '.$1-$2');
+                          }
+                          setFormData(prev => ({ ...prev, cpf: value }));
+                        }}
+                        className='w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent'
+                        placeholder='000.000.000-00'
+                        maxLength={14}
+                        required
+                      />
+                    </div>
+                  ) : (
+                    <div>
+                      <label className='block text-sm font-medium text-gray-700 mb-1'>
+                        {formData.tipo === 'dentista'
+                          ? 'CRO *'
+                          : formData.tipo === 'psicologo'
+                            ? 'CRP *'
+                            : formData.tipo === 'medico'
+                              ? 'CRM *'
+                              : 'Registro *'}
+                      </label>
+                      <input
+                        type='text'
+                        value={formData.cro}
+                        onChange={e =>
+                          setFormData(prev => ({
+                            ...prev,
+                            cro: e.target.value,
+                          }))
+                        }
+                        className='w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent'
+                        placeholder={
+                          formData.tipo === 'dentista'
+                            ? 'CRO-SP 12345'
+                            : formData.tipo === 'psicologo'
+                              ? 'CRP 06/123456'
+                              : formData.tipo === 'medico'
+                                ? 'CRM 123456-SP'
+                                : 'Registro Profissional'
+                        }
+                        required
+                      />
+                    </div>
+                  )}
                   <div>
                     <label className='block text-sm font-medium text-gray-700 mb-1'>
-                      E-mail
+                      E-mail *
                     </label>
                     <input
                       type='email'
@@ -503,6 +726,7 @@ export function GerenciarUsuarios({ onBack }: GerenciarUsuariosProps) {
                       }
                       className='w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent'
                       placeholder='email@exemplo.com'
+                      required
                     />
                   </div>
                   <div>
@@ -524,38 +748,60 @@ export function GerenciarUsuarios({ onBack }: GerenciarUsuariosProps) {
                   </div>
                   <div>
                     <label className='block text-sm font-medium text-gray-700 mb-1'>
-                      Tipo de Usuário
+                      Tipo de Usuário *
                     </label>
                     <select
                       value={formData.tipo}
                       onChange={e =>
-                        setFormData(prev => ({ ...prev, tipo: e.target.value }))
+                        setFormData(prev => ({
+                          ...prev,
+                          tipo: e.target.value as
+                            | 'paciente'
+                            | 'dentista'
+                            | 'psicologo'
+                            | 'medico'
+                            | 'admin',
+                        }))
                       }
                       className='w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent'
+                      required
                     >
                       <option value='paciente'>Paciente</option>
                       <option value='dentista'>Dentista</option>
+                      <option value='psicologo'>Psicólogo</option>
+                      <option value='medico'>Clínico Geral</option>
                       <option value='admin'>Administrador</option>
                     </select>
                   </div>
+                  {modalType === 'create' && (
+                    <div>
+                      <label className='block text-sm font-medium text-gray-700 mb-1'>
+                        Senha{' '}
+                        {modalType === 'create'
+                          ? '*'
+                          : '(deixe vazio para não alterar)'}
+                      </label>
+                      <input
+                        type='password'
+                        value={formData.password}
+                        onChange={e =>
+                          setFormData(prev => ({
+                            ...prev,
+                            password: e.target.value,
+                          }))
+                        }
+                        className='w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent'
+                        placeholder={
+                          modalType === 'create'
+                            ? 'Mínimo 6 caracteres'
+                            : 'Deixe vazio para não alterar'
+                        }
+                        minLength={6}
+                        required={modalType === 'create'}
+                      />
+                    </div>
+                  )}
                 </div>
-
-                {formData.tipo === 'dentista' && (
-                  <div>
-                    <label className='block text-sm font-medium text-gray-700 mb-1'>
-                      CRO
-                    </label>
-                    <input
-                      type='text'
-                      value={formData.cro}
-                      onChange={e =>
-                        setFormData(prev => ({ ...prev, cro: e.target.value }))
-                      }
-                      className='w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent'
-                      placeholder='CRO-SP 12345'
-                    />
-                  </div>
-                )}
 
                 <div>
                   <label className='block text-sm font-medium text-gray-700 mb-1'>
@@ -596,12 +842,20 @@ export function GerenciarUsuarios({ onBack }: GerenciarUsuariosProps) {
 
           {modalType !== 'view' && (
             <div className='flex justify-end gap-3 p-6 border-t border-gray-200'>
-              <Button variant='secondary' onClick={() => setShowModal(false)}>
+              <Button
+                variant='secondary'
+                onClick={() => setShowModal(false)}
+                disabled={loading}
+              >
                 Cancelar
               </Button>
-              <Button>
+              <Button onClick={handleSubmit} disabled={loading}>
                 <Save className='h-4 w-4 mr-2' />
-                {modalType === 'create' ? 'Criar Usuário' : 'Salvar Alterações'}
+                {loading
+                  ? 'Salvando...'
+                  : modalType === 'create'
+                    ? 'Criar Usuário'
+                    : 'Salvar Alterações'}
               </Button>
             </div>
           )}
