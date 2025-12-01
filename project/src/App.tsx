@@ -3,6 +3,7 @@ import { Header } from './components/layout/Header';
 import { Sidebar } from './components/layout/Sidebar';
 import { AuthError } from './components/AuthError';
 import { LoginTrabalho } from './components/LoginTrabalho';
+import { LoginForm } from './components/LoginForm';
 import { SpecialtiesDashboard } from './components/SpecialtiesDashboard';
 import { SolicitarAtendimento } from './components/SolicitarAtendimento';
 import { PacienteDashboard } from './components/paciente/Dashboard';
@@ -97,6 +98,10 @@ function App() {
 
   if (currentPath === '/login/trabalho') {
     return <LoginTrabalho />;
+  }
+
+  if (currentPath === '/login') {
+    return <LoginForm />;
   }
 
   if (currentPath === '/debug-auth') {
