@@ -70,7 +70,6 @@ A aplicação Unio irá:
 ```javascript
 async function handleRedirectToUnio() {
   try {
-    // 1. Fazer login na API externa
     const loginResponse = await fetch(
       'https://homolog.uniogroup.app/api/Usuario/login',
       {
@@ -92,19 +91,15 @@ async function handleRedirectToUnio() {
       throw new Error('Token não recebido da API');
     }
 
-    // 2. Salvar token no localStorage
     localStorage.setItem('token', loginData.token);
 
-    // 3. Redirecionar para a aplicação Unio
-    window.location.href = 'https://sua-aplicacao-unio.com/';
+    window.location.href = 'https://www.unio-online.com.br';
   } catch (error) {
     console.error('Erro ao fazer login:', error);
     alert('Erro ao fazer login. Por favor, tente novamente.');
   }
 }
 ```
-
-## Exemplo com HTML/React
 
 ```jsx
 <button onClick={handleRedirectToUnio}>Acessar Unio</button>

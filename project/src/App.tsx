@@ -20,6 +20,7 @@ import { Financeiro } from './components/admin/Financeiro';
 import { Relatorios } from './components/admin/Relatorios';
 import { Perfil } from './components/Perfil';
 import { Configuracoes } from './components/Configuracoes';
+import { DebugAuthPage } from './components/DebugAuthPage';
 import { useAuthStore } from './stores/auth';
 import './lib/debugAuth';
 import './index.css';
@@ -96,6 +97,10 @@ function App() {
 
   if (currentPath === '/login/trabalho') {
     return <LoginTrabalho />;
+  }
+
+  if (currentPath === '/debug-auth') {
+    return <DebugAuthPage />;
   }
 
   if (isLoading) {
