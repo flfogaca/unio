@@ -1,4 +1,11 @@
-import { Controller, Post, Body, Get, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { Public } from '@/shared/decorators/public.decorator';
@@ -146,17 +153,23 @@ export class SimpleAuthController {
 
   @UseGuards(JwtAuthGuard)
   @Get('profile')
-  async getProfile(@CurrentUser() user: any) {
+  async getProfile(@CurrentUser() user: any, @Request() req: any) {
     try {
-      console.log('🔍 getProfile - User received:', user);
+      console.log('🔍 getProfile - User from @CurrentUser():', user);
+      console.log('🔍 getProfile - req.user:', req.user);
       console.log(
         '🔍 getProfile - User keys:',
         user ? Object.keys(user) : 'user is null/undefined'
       );
 
-      const userId = user?.id || user?.sub;
+      const currentUser = user || req.user;
+      const userId = currentUser?.id || currentUser?.sub;
+
       if (!userId) {
-        console.error('❌ getProfile - No userId found. User object:', user);
+        console.error(
+          '❌ getProfile - No userId found. User object:',
+          currentUser
+        );
         return {
           success: false,
           message: 'ID do usuário não encontrado no token',
