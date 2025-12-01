@@ -1,14 +1,31 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { useAuthStore } from '@/stores/auth';
 
 export function LoginForm() {
-  const { login, isLoading, error, clearError } = useAuthStore();
+  const { login, isLoading, error, clearError, user, isAuthenticated } =
+    useAuthStore();
   const [credentials, setCredentials] = useState({
     email: '',
     password: '',
   });
+
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      const defaultRoute = {
+        paciente: '/paciente',
+        dentista: '/dentista',
+        psicologo: '/dentista',
+        medico: '/dentista',
+        admin: '/admin',
+      };
+      const route =
+        defaultRoute[user.role as keyof typeof defaultRoute] || '/paciente';
+      window.location.hash = route;
+      window.location.reload();
+    }
+  }, [isAuthenticated, user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
