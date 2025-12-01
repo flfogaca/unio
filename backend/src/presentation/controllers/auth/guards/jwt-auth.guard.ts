@@ -31,13 +31,19 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     }
 
     console.log('Protected endpoint, validating JWT...');
-    try {
-      const result = await super.canActivate(context);
-      console.log('✅ JWT validation result:', result);
-      return result;
-    } catch (error) {
-      console.error('❌ JWT validation error:', error);
-      throw error;
+    const result = super.canActivate(context);
+    if (result instanceof Promise) {
+      return result.then(
+        val => {
+          console.log('✅ JWT validation result:', val);
+          return val;
+        },
+        err => {
+          console.error('❌ JWT validation error:', err);
+          throw err;
+        }
+      );
     }
+    return result;
   }
 }
