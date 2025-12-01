@@ -11,14 +11,17 @@ import { DatabaseModule } from '@/infrastructure/database/database.module';
 
 @Module({
   imports: [
-    DatabaseModule, // Adicionando DatabaseModule para PrismaService
+    DatabaseModule,
     PassportModule,
-    JwtModule.register({
-      secret: process.env.JWT_SECRET || 'default-secret',
-      signOptions: { expiresIn: '15m' },
+    JwtModule.registerAsync({
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.get<string>('JWT_SECRET') || 'default-secret',
+        signOptions: { expiresIn: '15m' },
+      }),
     }),
   ],
-  controllers: [AuthController, SimpleAuthController], // Adicionando SimpleAuthController
+  controllers: [AuthController, SimpleAuthController],
   providers: [AuthService, JwtStrategy, LocalStrategy],
   exports: [AuthService],
 })
