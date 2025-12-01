@@ -10,7 +10,6 @@ import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { Public } from '@/shared/decorators/public.decorator';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { CurrentUser } from '@/shared/decorators/current-user.decorator';
 import { UserRole } from '@/shared/types';
 import * as bcrypt from 'bcrypt';
 
@@ -153,23 +152,34 @@ export class SimpleAuthController {
 
   @UseGuards(JwtAuthGuard)
   @Get('profile')
-  async getProfile(@CurrentUser() user: any, @Request() req: any) {
+  async getProfile(@Request() req: any) {
     try {
-      console.log('🔍 getProfile - User from @CurrentUser():', user);
-      console.log('🔍 getProfile - req.user:', req.user);
-      console.log(
-        '🔍 getProfile - User keys:',
-        user ? Object.keys(user) : 'user is null/undefined'
-      );
+      let userId: string | undefined;
 
-      const currentUser = user || req.user;
-      const userId = currentUser?.id || currentUser?.sub;
+      if (req.user) {
+        userId = req.user.id || req.user.sub;
+      }
 
       if (!userId) {
-        console.error(
-          '❌ getProfile - No userId found. User object:',
-          currentUser
-        );
+        const authHeader = req.headers.authorization;
+        if (authHeader) {
+          const token = authHeader.replace('Bearer ', '');
+          try {
+            const payload = this.jwtService.decode(token) as {
+              sub?: string;
+              id?: string;
+            };
+            userId = payload.sub || payload.id;
+          } catch {
+            return {
+              success: false,
+              message: 'Token inválido',
+            };
+          }
+        }
+      }
+
+      if (!userId) {
         return {
           success: false,
           message: 'ID do usuário não encontrado no token',
