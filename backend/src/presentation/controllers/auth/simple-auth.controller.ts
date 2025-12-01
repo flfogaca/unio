@@ -4,7 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import { Public } from '@/shared/decorators/public.decorator';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from '@/shared/decorators/current-user.decorator';
-import { UserRole, JwtPayload } from '@/shared/types';
+import { UserRole } from '@/shared/types';
 import * as bcrypt from 'bcrypt';
 
 @Controller('simple-auth')
@@ -146,9 +146,9 @@ export class SimpleAuthController {
 
   @UseGuards(JwtAuthGuard)
   @Get('profile')
-  async getProfile(@CurrentUser() user: JwtPayload) {
+  async getProfile(@CurrentUser() user: any) {
     try {
-      const userId = user.sub;
+      const userId = user.id || user.sub;
       if (!userId) {
         return {
           success: false,

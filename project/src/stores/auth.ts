@@ -123,7 +123,11 @@ export const useAuthStore = create<AuthState>(set => ({
       }
 
       try {
-        const payload = JSON.parse(atob(parts[1])) as { exp?: number };
+        const payload = JSON.parse(atob(parts[1])) as {
+          exp?: number;
+          Id?: number;
+          PerfilId?: number;
+        };
         const exp = payload.exp;
         const now = Math.floor(Date.now() / 1000);
 
@@ -136,36 +140,53 @@ export const useAuthStore = create<AuthState>(set => ({
           });
           return;
         }
-      } catch {
-        apiClient.clearToken();
-        set({
-          isAuthenticated: false,
-          user: null,
-          isLoading: false,
-        });
-        return;
-      }
 
-      const validationResult = await apiClient.validateExternalToken(token);
+        const isExternalToken = !!(payload.Id || payload.PerfilId);
 
-      if (validationResult.valid && validationResult.localToken) {
-        const userData = validationResult.userData;
+        if (isExternalToken) {
+          const validationResult = await apiClient.validateExternalToken(token);
 
-        if (userData) {
-          const mappedUser: User = {
-            id: String(userData.id || ''),
-            name: userData.name || '',
-            email: userData.email || '',
-            role: userData.role as UserRole,
-            cpf: userData.cpf || '',
-            phone: userData.phone || '',
-          };
+          if (validationResult.valid && validationResult.localToken) {
+            const userData = validationResult.userData;
 
-          set({
-            user: mappedUser,
-            isAuthenticated: true,
-            isLoading: false,
-          });
+            if (userData) {
+              const mappedUser: User = {
+                id: String(userData.id || ''),
+                name: userData.name || '',
+                email: userData.email || '',
+                role: userData.role as UserRole,
+                cpf: userData.cpf || '',
+                phone: userData.phone || '',
+              };
+
+              set({
+                user: mappedUser,
+                isAuthenticated: true,
+                isLoading: false,
+              });
+            } else {
+              const profileResponse = await apiClient.getProfile();
+              if (profileResponse.success && profileResponse.data) {
+                set({
+                  user: profileResponse.data as User,
+                  isAuthenticated: true,
+                  isLoading: false,
+                });
+              } else {
+                set({
+                  isAuthenticated: true,
+                  isLoading: false,
+                });
+              }
+            }
+          } else {
+            apiClient.clearToken();
+            set({
+              isAuthenticated: false,
+              user: null,
+              isLoading: false,
+            });
+          }
         } else {
           const profileResponse = await apiClient.getProfile();
           if (profileResponse.success && profileResponse.data) {
@@ -175,13 +196,15 @@ export const useAuthStore = create<AuthState>(set => ({
               isLoading: false,
             });
           } else {
+            apiClient.clearToken();
             set({
-              isAuthenticated: true,
+              isAuthenticated: false,
+              user: null,
               isLoading: false,
             });
           }
         }
-      } else {
+      } catch {
         apiClient.clearToken();
         set({
           isAuthenticated: false,
