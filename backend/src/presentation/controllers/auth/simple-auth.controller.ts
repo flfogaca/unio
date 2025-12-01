@@ -33,7 +33,9 @@ export class SimpleAuthController {
       }
 
       const payload = { email: user.email, sub: user.id, role: user.role };
+      console.log('🔐 Generating token with payload:', payload);
       const token = this.jwtService.sign(payload);
+      console.log('✅ Token generated:', token.substring(0, 30) + '...');
 
       return {
         success: true,

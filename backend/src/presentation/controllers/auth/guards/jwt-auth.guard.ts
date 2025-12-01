@@ -19,9 +19,10 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     console.log('=== JWT GUARD ===');
     console.log('Endpoint:', request.url);
     console.log('Is Public:', isPublic);
+    const authHeader = request.headers.authorization;
     console.log(
       'Authorization header:',
-      request.headers.authorization ? 'Present' : 'Missing'
+      authHeader ? authHeader.substring(0, 30) + '...' : 'Missing'
     );
 
     if (isPublic) {
@@ -30,6 +31,13 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     }
 
     console.log('Protected endpoint, validating JWT...');
-    return super.canActivate(context);
+    try {
+      const result = await super.canActivate(context);
+      console.log('✅ JWT validation result:', result);
+      return result;
+    } catch (error) {
+      console.error('❌ JWT validation error:', error);
+      throw error;
+    }
   }
 }
