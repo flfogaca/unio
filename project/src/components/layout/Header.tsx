@@ -1,7 +1,6 @@
 import { Bell, Menu, User } from 'lucide-react';
 import { useState } from 'react';
 import { useAuthStore } from '@/stores/auth';
-import { cn } from '@/lib/utils';
 
 interface HeaderProps {
   onMenuToggle?: () => void;
@@ -9,11 +8,7 @@ interface HeaderProps {
   onNavigate?: (path: string) => void;
 }
 
-export function Header({
-  onMenuToggle,
-  currentPath = '/',
-  onNavigate,
-}: HeaderProps) {
+export function Header({ onMenuToggle, onNavigate }: HeaderProps) {
   const { user, logout } = useAuthStore();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
 
@@ -32,6 +27,8 @@ export function Header({
     try {
       await logout();
       setShowProfileMenu(false);
+      window.location.hash = '/login';
+      window.location.reload();
     } catch (error) {
       console.error('Erro ao fazer logout:', error);
     }
