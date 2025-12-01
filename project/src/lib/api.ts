@@ -22,7 +22,7 @@ class ApiClient {
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
     const url = `${this.baseURL}${endpoint}`;
-    const currentToken = this.token || localStorage.getItem('token');
+    const currentToken = localStorage.getItem('token') || this.token;
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...(options.headers as Record<string, string>),
@@ -30,6 +30,8 @@ class ApiClient {
 
     if (currentToken) {
       headers.Authorization = `Bearer ${currentToken}`;
+    } else {
+      console.warn('No token found for request to:', endpoint);
     }
 
     const response = await fetch(url, {
@@ -266,6 +268,7 @@ class ApiClient {
   setToken(token: string) {
     this.token = token;
     localStorage.setItem('token', token);
+    console.log('Token saved:', token.substring(0, 20) + '...');
   }
 
   clearToken() {
