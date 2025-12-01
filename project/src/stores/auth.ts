@@ -2,20 +2,6 @@ import { create } from 'zustand';
 import apiClient from '@/lib/api';
 import { User, UserRole } from '@/shared/types';
 
-function mapExternalRoleToInternal(perfilId: number | undefined): UserRole {
-  if (!perfilId) return UserRole.PACIENTE;
-
-  const roleMap: Record<number, UserRole> = {
-    1: UserRole.PACIENTE,
-    2: UserRole.DENTISTA,
-    3: UserRole.PSICOLOGO,
-    4: UserRole.MEDICO,
-    5: UserRole.ADMIN,
-  };
-
-  return roleMap[perfilId] || UserRole.PACIENTE;
-}
-
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
@@ -162,26 +148,41 @@ export const useAuthStore = create<AuthState>(set => ({
 
       const validationResult = await apiClient.validateExternalToken(token);
 
-      if (validationResult.valid && validationResult.userData) {
-        const externalUser = validationResult.userData;
+      if (validationResult.valid && validationResult.localToken) {
+        const userData = validationResult.userData;
 
-        const mappedUser: User = {
-          id: String(externalUser.id || externalUser.Id || ''),
-          name: externalUser.nome || externalUser.name || '',
-          email: externalUser.email || '',
-          role: mapExternalRoleToInternal(
-            externalUser.perfilId || externalUser.PerfilId
-          ),
-          cpf: externalUser.cpf || '',
-          phone: externalUser.telefone || externalUser.phone || '',
-        };
+        if (userData) {
+          const mappedUser: User = {
+            id: String(userData.id || ''),
+            name: userData.name || '',
+            email: userData.email || '',
+            role: userData.role as UserRole,
+            cpf: userData.cpf || '',
+            phone: userData.phone || '',
+          };
 
-        set({
-          user: mappedUser,
-          isAuthenticated: true,
-          isLoading: false,
-        });
+          set({
+            user: mappedUser,
+            isAuthenticated: true,
+            isLoading: false,
+          });
+        } else {
+          const profileResponse = await apiClient.getProfile();
+          if (profileResponse.success && profileResponse.data) {
+            set({
+              user: profileResponse.data as User,
+              isAuthenticated: true,
+              isLoading: false,
+            });
+          } else {
+            set({
+              isAuthenticated: true,
+              isLoading: false,
+            });
+          }
+        }
       } else {
+        apiClient.clearToken();
         set({
           isAuthenticated: false,
           user: null,

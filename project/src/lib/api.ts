@@ -87,7 +87,7 @@ class ApiClient {
 
   async validateExternalToken(
     token: string
-  ): Promise<{ valid: boolean; userData?: any }> {
+  ): Promise<{ valid: boolean; userData?: any; localToken?: string }> {
     try {
       const parts = token.split('.');
       if (parts.length !== 3) {
@@ -109,25 +109,24 @@ class ApiClient {
         }
       }
 
-      const userId = payload.Id || payload.id || payload.sub;
-
-      if (!userId) {
-        console.error('ID do usuário não encontrado no token');
-        return { valid: false };
-      }
-
-      const externalApiUrl = 'https://homolog.uniogroup.app/api/Usuario';
-      const response = await fetch(`${externalApiUrl}/${userId}`, {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+      const response = await this.request<{
+        token?: string;
+        user?: any;
+      }>('/simple-auth/validate-external-token', {
+        method: 'POST',
+        body: JSON.stringify({ token }),
       });
 
-      if (response.ok) {
-        const userData = await response.json();
-        return { valid: true, userData };
+      if (response.success && response.data) {
+        const localToken = response.data.token;
+        if (localToken) {
+          this.setToken(localToken);
+        }
+        return {
+          valid: true,
+          userData: response.data.user,
+          localToken,
+        };
       }
 
       return { valid: false };
