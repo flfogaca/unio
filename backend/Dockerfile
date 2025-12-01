@@ -11,19 +11,19 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 # Copy package files
-COPY package*.json ./
+COPY backend/package*.json ./
 
 # Install all dependencies (including dev dependencies for build)
 RUN npm install
 
 # Copy Prisma schema first
-COPY prisma ./prisma
+COPY backend/prisma ./prisma
 
 # Generate Prisma client
 RUN npx prisma generate
 
 # Copy source code
-COPY . .
+COPY backend/ .
 
 # Build the application
 RUN npm run build
