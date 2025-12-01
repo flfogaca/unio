@@ -154,23 +154,40 @@ export class SimpleAuthController {
   @Get('profile')
   async getProfile(@Request() req: any) {
     try {
+      console.log('🔍 getProfile - req.user:', req.user);
+      console.log(
+        '🔍 getProfile - req.headers.authorization:',
+        req.headers.authorization ? 'Present' : 'Missing'
+      );
+
       let userId: string | undefined;
 
       if (req.user) {
+        console.log('🔍 getProfile - req.user keys:', Object.keys(req.user));
         userId = req.user.id || req.user.sub;
+        console.log('🔍 getProfile - userId from req.user:', userId);
       }
 
       if (!userId) {
         const authHeader = req.headers.authorization;
         if (authHeader) {
           const token = authHeader.replace('Bearer ', '');
+          console.log(
+            '🔍 getProfile - Decoding token directly, token preview:',
+            token.substring(0, 30) + '...'
+          );
           try {
             const payload = this.jwtService.decode(token) as {
               sub?: string;
               id?: string;
+              email?: string;
+              role?: string;
             };
+            console.log('🔍 getProfile - Decoded payload:', payload);
             userId = payload.sub || payload.id;
-          } catch {
+            console.log('🔍 getProfile - userId from decoded token:', userId);
+          } catch (error) {
+            console.error('❌ getProfile - Error decoding token:', error);
             return {
               success: false,
               message: 'Token inválido',
@@ -180,11 +197,14 @@ export class SimpleAuthController {
       }
 
       if (!userId) {
+        console.error('❌ getProfile - No userId found after all attempts');
         return {
           success: false,
           message: 'ID do usuário não encontrado no token',
         };
       }
+
+      console.log('✅ getProfile - Using userId:', userId);
 
       const userProfile = await this.prismaService.user.findUnique({
         where: { id: userId },
