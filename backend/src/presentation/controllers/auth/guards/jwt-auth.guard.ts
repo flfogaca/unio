@@ -20,19 +20,13 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       return true;
     }
 
-    console.log('🛡️ JwtAuthGuard - Before super.canActivate');
     const result = await super.canActivate(context);
-    console.log('🛡️ JwtAuthGuard - After super.canActivate, result:', result);
 
     if (result) {
       const req = context.switchToHttp().getRequest();
-      console.log('🛡️ JwtAuthGuard - request.user:', request.user);
-      console.log('🛡️ JwtAuthGuard - req.user:', req.user);
       if (!req.user && request.user) {
         req.user = request.user;
-        console.log('🛡️ JwtAuthGuard - Copied request.user to req.user');
       }
-      console.log('🛡️ JwtAuthGuard - Final req.user:', req.user);
     }
 
     return result as boolean;
