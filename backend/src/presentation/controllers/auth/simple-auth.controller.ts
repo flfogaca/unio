@@ -153,27 +153,36 @@ export class SimpleAuthController {
   @UseGuards(JwtAuthGuard)
   @Get('profile')
   async getProfile(@Request() req: any) {
-    try {
-      console.log('🔍 getProfile - req.user:', req.user);
-      console.log(
-        '🔍 getProfile - req.headers.authorization:',
-        req.headers.authorization ? 'Present' : 'Missing'
-      );
+    console.log('🚀 getProfile - START');
+    console.log('🚀 getProfile - req.user:', JSON.stringify(req.user));
+    console.log(
+      '🚀 getProfile - req.headers.authorization:',
+      req.headers.authorization ? 'Present' : 'Missing'
+    );
 
+    try {
       let userId: string | undefined;
 
       if (req.user) {
-        console.log('🔍 getProfile - req.user keys:', Object.keys(req.user));
+        console.log(
+          '🚀 getProfile - req.user exists, keys:',
+          Object.keys(req.user)
+        );
         userId = req.user.id || req.user.sub;
-        console.log('🔍 getProfile - userId from req.user:', userId);
+        console.log('🚀 getProfile - userId from req.user:', userId);
+      } else {
+        console.log('🚀 getProfile - req.user is null/undefined');
       }
 
       if (!userId) {
+        console.log(
+          '🚀 getProfile - userId not found in req.user, trying to decode token'
+        );
         const authHeader = req.headers.authorization;
         if (authHeader) {
           const token = authHeader.replace('Bearer ', '');
           console.log(
-            '🔍 getProfile - Decoding token directly, token preview:',
+            '🚀 getProfile - Token preview:',
             token.substring(0, 30) + '...'
           );
           try {
@@ -183,9 +192,12 @@ export class SimpleAuthController {
               email?: string;
               role?: string;
             };
-            console.log('🔍 getProfile - Decoded payload:', payload);
+            console.log(
+              '🚀 getProfile - Decoded payload:',
+              JSON.stringify(payload)
+            );
             userId = payload.sub || payload.id;
-            console.log('🔍 getProfile - userId from decoded token:', userId);
+            console.log('🚀 getProfile - userId from decoded token:', userId);
           } catch (error) {
             console.error('❌ getProfile - Error decoding token:', error);
             return {
@@ -193,6 +205,8 @@ export class SimpleAuthController {
               message: 'Token inválido',
             };
           }
+        } else {
+          console.log('🚀 getProfile - No authorization header found');
         }
       }
 
