@@ -148,8 +148,15 @@ export class SimpleAuthController {
   @Get('profile')
   async getProfile(@CurrentUser() user: any) {
     try {
-      const userId = user.id || user.sub;
+      console.log('🔍 getProfile - User received:', user);
+      console.log(
+        '🔍 getProfile - User keys:',
+        user ? Object.keys(user) : 'user is null/undefined'
+      );
+
+      const userId = user?.id || user?.sub;
       if (!userId) {
+        console.error('❌ getProfile - No userId found. User object:', user);
         return {
           success: false,
           message: 'ID do usuário não encontrado no token',
