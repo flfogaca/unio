@@ -22,7 +22,7 @@ class ApiClient {
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
     const url = `${this.baseURL}${endpoint}`;
-    const currentToken = localStorage.getItem('token');
+    const currentToken = this.token || localStorage.getItem('token');
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...(options.headers as Record<string, string>),

@@ -49,6 +49,7 @@ export const useAuthStore = create<AuthState>(set => ({
         const token = (response.data as { token?: string }).token;
         if (token) {
           apiClient.setToken(token);
+          await new Promise(resolve => setTimeout(resolve, 100));
         }
 
         const profileResponse = await apiClient.getProfile();
