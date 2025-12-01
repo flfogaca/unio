@@ -15,8 +15,28 @@ async function bootstrap() {
   app.use(compression());
 
   // CORS configuration
+  const corsOrigin = configService.get('CORS_ORIGIN');
+  const allowedOrigins = corsOrigin
+    ? corsOrigin.split(',').map(origin => origin.trim())
+    : ['http://localhost:5173'];
+
   app.enableCors({
-    origin: configService.get('CORS_ORIGIN') || 'http://localhost:5173',
+    origin: (origin, callback) => {
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      if (
+        allowedOrigins.includes(origin) ||
+        origin.includes('.vercel.app') ||
+        origin.includes('unio-online.com.br') ||
+        origin.includes('localhost')
+      ) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true,
   });
 
