@@ -188,6 +188,12 @@ export const useQueueStore = create<QueueState>((set, get) => ({
 
   updatePositions: async () => {
     try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.warn('⚠️ No token found when trying to update positions');
+        return;
+      }
+
       const response = await apiClient.getConsultations();
 
       if (response.success) {

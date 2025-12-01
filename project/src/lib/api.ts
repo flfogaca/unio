@@ -30,7 +30,17 @@ class ApiClient {
 
     if (currentToken) {
       headers.Authorization = `Bearer ${currentToken}`;
+    } else {
+      console.error('❌ No token found in localStorage for request:', endpoint);
+      console.log('localStorage keys:', Object.keys(localStorage));
     }
+
+    console.log('📤 Request:', endpoint, {
+      hasToken: !!currentToken,
+      tokenPreview: currentToken
+        ? currentToken.substring(0, 20) + '...'
+        : 'none',
+    });
 
     const response = await fetch(url, {
       ...options,
@@ -40,7 +50,13 @@ class ApiClient {
     const data = await response.json();
 
     if (!response.ok) {
+      console.error('❌ Request failed:', endpoint, {
+        status: response.status,
+        statusText: response.statusText,
+        data,
+      });
       if (response.status === 401) {
+        console.error('🔴 401 Unauthorized - Token may be invalid or expired');
         localStorage.removeItem('token');
         this.token = null;
       }

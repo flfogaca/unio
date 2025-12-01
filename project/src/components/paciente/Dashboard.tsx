@@ -9,14 +9,16 @@ import { useEffect, useState } from 'react';
 
 export function PacienteDashboard() {
   const { items, fetchQueue } = useQueueStore();
-  const { user } = useAuthStore();
+  const { user, isAuthenticated } = useAuthStore();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showSupporte, setShowSupporte] = useState(false);
 
-  // Buscar consultas ao montar o componente
+  // Buscar consultas ao montar o componente apenas se autenticado
   useEffect(() => {
-    fetchQueue();
-  }, [fetchQueue]);
+    if (isAuthenticated && user) {
+      fetchQueue();
+    }
+  }, [fetchQueue, isAuthenticated, user]);
 
   // Simula atualização em tempo real
   useEffect(() => {
@@ -29,12 +31,14 @@ export function PacienteDashboard() {
 
   // Polling automático para verificar mudanças de status
   useEffect(() => {
+    if (!isAuthenticated || !user) return;
+
     const interval = setInterval(() => {
       fetchQueue(); // Atualiza dados da fila a cada 5 segundos
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [fetchQueue]);
+  }, [fetchQueue, isAuthenticated, user]);
 
   // Se está mostrando suporte, renderizar a tela de suporte
   if (showSupporte) {

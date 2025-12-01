@@ -45,13 +45,26 @@ export const useAuthStore = create<AuthState>(set => ({
       set({ isLoading: true, error: null });
       const response = await apiClient.login(credentials);
 
+      console.log('🔐 Login response:', response);
+
       if (response.success && response.data) {
         const token = (response.data as { token?: string }).token;
+        console.log(
+          '🎫 Token received:',
+          token ? token.substring(0, 30) + '...' : 'NO TOKEN'
+        );
+
         if (token) {
           apiClient.setToken(token);
+          const savedToken = localStorage.getItem('token');
+          console.log(
+            '💾 Token saved to localStorage:',
+            savedToken ? savedToken.substring(0, 30) + '...' : 'NOT SAVED'
+          );
         }
 
         const profileResponse = await apiClient.getProfile();
+        console.log('👤 Profile response:', profileResponse);
         if (profileResponse.success && profileResponse.data) {
           set({
             user: profileResponse.data as User,
